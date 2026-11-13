@@ -1,0 +1,35 @@
+[project]
+name = "llm-salidas-estructuradas"
+version = "0.1.0"
+description = "Taller práctico: de clasificadores a LLMs con salida estructurada"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "llama-cpp-python==0.3.36",
+    "outlines[llamacpp]>=1.3.3,<1.4",  # el extra trae numba, que hace falta para la máscara
+    "huggingface-hub",
+    "scipy>=1.18.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["taller"]
+
+# llama-cpp-python en PyPI viene solo como código fuente (hay que compilarlo).
+# Windows y Linux: se usa este índice, que trae paquetes ya compilados.
+# macOS: los paquetes compilados de la 0.3.36 están corruptos, así que se
+# compila desde el código fuente (tarda unos minutos, solo la primera vez).
+[[tool.uv.index]]
+name = "llama-cpp-cpu"
+url = "https://abetlen.github.io/llama-cpp-python/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+llama-cpp-python = { index = "llama-cpp-cpu", marker = "sys_platform != 'darwin'" }
+
+# Sin esto, la compilación en macOS falla al enlazar con OpenSSL.
+# Esta opción existe desde uv 0.8.6: las versiones anteriores muestran un aviso.
+[tool.uv.extra-build-variables]
+llama-cpp-python = { CMAKE_ARGS = "-DLLAMA_OPENSSL=OFF" }
