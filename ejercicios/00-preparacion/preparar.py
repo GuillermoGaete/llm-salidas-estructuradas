@@ -17,15 +17,15 @@ from llama_cpp import Llama
 
 # Los modelos a descargar. Cada uno es: (repositorio en Hugging Face, archivo).
 MODELOS = [
-    # Los modelos del taller.
-    ("unsloth/Qwen3-0.6B-GGUF", "Qwen3-0.6B-Q4_K_M.gguf"),  # 0,4 GB · multilingüe
-    ("unsloth/Qwen3-1.7B-GGUF", "Qwen3-1.7B-Q4_K_M.gguf"),  # 1,1 GB · multilingüe
+    # Los modelos del taller (2,1 GB en total).
+    ("unsloth/Qwen3-0.6B-GGUF", "Qwen3-0.6B-Q4_K_M.gguf"),                              # 0,4 GB · multilingüe
+    ("unsloth/Qwen3-1.7B-GGUF", "Qwen3-1.7B-Q4_K_M.gguf"),                              # 1,1 GB · multilingüe
+    ("bartowski/SmolLM2-135M-Instruct-GGUF", "SmolLM2-135M-Instruct-Q4_K_M.gguf"),      # 0,1 GB · solo inglés
+    ("LiquidAI/LFM2.5-350M-GGUF", "LFM2.5-350M-Q4_K_M.gguf"),                           # 0,2 GB · multilingüe
+    ("ibm-granite/granite-4.0-350m-GGUF", "granite-4.0-350m-Q4_K_M.gguf"),              # 0,2 GB · multilingüe
 
     # Lista tentativa de otros modelos, para probar y comparar.
     # Para bajar uno: sacale el # de adelante, guardá y corré de nuevo el programa.
-    # ("bartowski/SmolLM2-135M-Instruct-GGUF", "SmolLM2-135M-Instruct-Q4_K_M.gguf"),      # 0,1 GB · solo inglés
-    # ("LiquidAI/LFM2.5-350M-GGUF", "LFM2.5-350M-Q4_K_M.gguf"),                           # 0,2 GB · multilingüe
-    # ("ibm-granite/granite-4.0-350m-GGUF", "granite-4.0-350m-Q4_K_M.gguf"),              # 0,2 GB · multilingüe
     # ("unsloth/gemma-3-270m-it-GGUF", "gemma-3-270m-it-Q4_K_M.gguf"),                    # 0,3 GB · multilingüe
     # ("bartowski/SmolLM2-360M-Instruct-GGUF", "SmolLM2-360M-Instruct-Q4_K_M.gguf"),      # 0,3 GB · solo inglés
     # ("unsloth/Qwen3.5-0.8B-GGUF", "Qwen3.5-0.8B-Q4_K_M.gguf"),                          # 0,5 GB · multilingüe
@@ -33,7 +33,7 @@ MODELOS = [
     # ("unsloth/gemma-3-1b-it-GGUF", "gemma-3-1b-it-Q4_K_M.gguf"),                        # 0,8 GB · multilingüe
     # ("bartowski/Llama-3.2-1B-Instruct-GGUF", "Llama-3.2-1B-Instruct-Q4_K_M.gguf"),      # 0,8 GB · multilingüe
     # ("HuggingFaceTB/SmolLM2-1.7B-Instruct-GGUF", "smollm2-1.7b-instruct-q4_k_m.gguf"),  # 1,1 GB · solo inglés
-    # ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf"),                              # 1,3 GB · multilingüe
+    ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf"),                              # 1,3 GB · multilingüe
 ]
 
 # La carpeta modelos/ está en la raíz del taller, dos carpetas arriba de este archivo.

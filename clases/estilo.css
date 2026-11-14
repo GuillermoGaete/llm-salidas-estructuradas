@@ -1,0 +1,330 @@
+/* Estilo del taller, encima del tema "black" de reveal.js.
+   Paleta inspirada en 3Blue1Brown: fondo azul noche y pocos colores con significado. */
+:root {
+  --fondo: #0f1b2b;
+  --texto: #ece6d9;
+  --gris: #8fa1b3;
+  --azul: #58c4dd;      /* tokens, el modelo */
+  --amarillo: #f4d345;  /* la idea importante */
+  --verde: #83c167;     /* lo que sí */
+  --rojo: #fc6255;      /* lo que no */
+  --caja: #1a2c44;
+  --borde: #2e4563;
+
+  --r-background-color: var(--fondo);
+  --r-main-color: var(--texto);
+  --r-heading-color: var(--texto);
+  --r-main-font-size: 36px;
+  --r-heading-text-transform: none;
+  --r-link-color: var(--azul);
+  --r-code-font: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.reveal-viewport { background: var(--fondo); }
+.reveal .slides { text-align: left; }
+.reveal .slides section { box-sizing: border-box; }
+
+.reveal h1 { font-size: 2.3em; line-height: 1.15; }
+.reveal h2 { font-size: 1.55em; margin-bottom: 0.6em; }
+.reveal h3 { font-size: 0.85em; color: var(--gris); margin-bottom: 0.5em; }
+.reveal p { margin: 0.5em 0; line-height: 1.35; }
+.reveal code { color: var(--azul); font-size: 0.92em; }
+.reveal pre { width: 100%; margin: 0.6em 0; font-size: 0.62em; box-shadow: none; }
+.reveal pre code { color: var(--texto); padding: 0.8em 1em; border-radius: 8px; max-height: 480px; background: #0a1320; }
+.reveal ul, .reveal ol { margin-left: 1.1em; }
+.reveal li { margin: 0.25em 0; line-height: 1.3; }
+.reveal .slide-number { background: none; color: var(--gris); font-size: 16px; }
+
+.reveal .azul { color: var(--azul); }
+.reveal .amarillo { color: var(--amarillo); }
+.reveal .verde { color: var(--verde); }
+.reveal .rojo { color: var(--rojo); }
+.reveal .gris { color: var(--gris); }
+.reveal .chico { font-size: 0.8em; }
+
+/* Portada */
+.reveal .portada .sobretitulo { color: var(--azul); letter-spacing: 0.06em; font-size: 0.85em; }
+.reveal .portada .bajada { color: var(--gris); margin-top: 1.2em; }
+
+/* Etiqueta chica arriba del título */
+.reveal .etiqueta {
+  color: var(--azul); font-size: 0.6em; letter-spacing: 0.1em;
+  text-transform: uppercase; margin: 0 0 0.3em;
+}
+
+/* Preguntas y respuestas a pantalla completa */
+.reveal h2.pregunta { font-size: 2em; line-height: 1.2; }
+.reveal .respuesta { font-size: 1.7em; line-height: 1.25; margin-top: 1em; }
+.reveal .recorrido { display: flex; align-items: center; gap: 0.6em; margin-top: 1.4em; font-size: 0.9em; }
+.reveal .recorrido span { border: 2px solid var(--borde); border-radius: 999px; padding: 0.3em 0.9em; }
+.reveal .recorrido span.destacado { border-color: var(--amarillo); color: var(--amarillo); }
+.reveal .recorrido b { color: var(--gris); font-weight: 400; }
+
+/* Columnas */
+.reveal .dos-columnas { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6em; align-items: start; }
+.reveal .dos-columnas.centradas { align-items: center; }
+.reveal .tres-columnas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4em; margin-bottom: 0.8em; }
+.reveal .espaciada li { margin: 0.5em 0; }
+
+/* Árbol de carpetas */
+.reveal pre.arbol {
+  font-size: 0.6em; line-height: 1.45; background: #0a1320;
+  padding: 0.9em 1.1em; border-radius: 8px; font-family: var(--r-code-font);
+}
+
+/* Listas de pasos */
+.reveal ol.pasos { list-style: none; margin-left: 0; counter-reset: paso; font-size: 0.88em; }
+.reveal ol.pasos li { counter-increment: paso; padding-left: 1.9em; position: relative; margin: 0.4em 0; }
+.reveal ol.pasos li::before {
+  content: counter(paso); position: absolute; left: 0; top: 0.08em;
+  width: 1.35em; height: 1.35em; border-radius: 50%;
+  background: var(--azul); color: var(--fondo);
+  font-size: 0.8em; font-weight: 700; text-align: center; line-height: 1.35em;
+}
+.reveal ol.pasos.en-linea { display: flex; flex-wrap: wrap; gap: 0.3em 1.4em; }
+
+/* Diapositivas de ejercicio */
+.reveal .ejercicio .numero { color: var(--amarillo); font-variant-numeric: tabular-nums; margin-right: 0.3em; }
+.reveal .ejercicio pre.comando { width: 100%; margin: 0.4em 0 0.7em; font-size: 0.6em; }
+.reveal .ejercicio pre.comando code { background: rgba(0, 0, 0, 0.45); }
+.reveal .mensaje-cliente { font-size: 1.25em; color: var(--verde); margin: 0.2em 0 0.6em; }
+.reveal .charla {
+  margin-top: 0.8em; padding: 0.5em 1em; font-size: 0.78em;
+  border-left: 4px solid var(--amarillo); background: rgba(0, 0, 0, 0.25); border-radius: 0 8px 8px 0;
+}
+.reveal .charla > p { color: var(--amarillo); font-size: 0.8em; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 0.2em; }
+.reveal .charla ul { margin-left: 1em; }
+
+/* Cadena de cajas con flechas */
+.reveal .cadena { display: flex; align-items: center; gap: 0.6em; margin: 0.8em 0 1em; font-size: 0.72em; }
+.reveal .cadena > b, .reveal .loop b { color: var(--gris); font-weight: 400; font-size: 1.3em; }
+.reveal .caja {
+  background: var(--caja); border: 2px solid var(--borde); border-radius: 10px;
+  padding: 0.6em 0.9em; text-align: center;
+}
+.reveal .caja small { display: block; color: var(--gris); font-size: 0.75em; margin-bottom: 0.2em; }
+.reveal .caja.verde { border-color: var(--verde); color: var(--verde); font-weight: 700; }
+.reveal .caja.ancho { font-size: 1.25em; text-align: left; padding: 0.7em 1em; min-height: 1.4em; }
+
+/* Barras de probabilidad */
+.reveal .barras { display: grid; gap: 0.35em; font-size: 0.72em; }
+.reveal .barras.angosto { width: 300px; font-size: 1em; }
+.reveal .barras.compacto { font-size: 0.66em; }
+.reveal .barra { display: grid; grid-template-columns: 5.2em 1fr 3.4em; align-items: center; gap: 0.5em; }
+.reveal .barra .nombre { font-family: var(--r-code-font); text-align: right; white-space: nowrap; }
+.reveal .barra .pista { height: 1em; background: rgba(255, 255, 255, 0.06); border-radius: 4px; overflow: hidden; }
+.reveal .barra .pista i { display: block; height: 100%; background: var(--azul); border-radius: 4px; }
+.reveal .barra .valor { font-variant-numeric: tabular-nums; color: var(--gris); }
+.reveal .barra.tapada { opacity: 0.4; }
+.reveal .barra.tapada .nombre { text-decoration: line-through; color: var(--rojo); }
+.reveal .barra.viva .pista i { background: var(--amarillo); }
+.reveal .barra.viva .valor { color: var(--amarillo); }
+
+/* Tokens */
+.reveal .tokens i {
+  font-style: normal; font-family: var(--r-code-font); font-size: 0.9em;
+  padding: 0.1em 0.3em; border-radius: 4px; margin-right: 2px;
+}
+.reveal .tokens i:nth-child(1) { background: #2b5f6e; }
+.reveal .tokens i:nth-child(2) { background: #6e5a2b; }
+.reveal .tokens i:nth-child(3) { background: #3f6e2b; }
+
+/* Loop */
+.reveal .loop { margin: 0.6em 0 1em; }
+.reveal .vuelta { display: flex; gap: 0.8em; margin-top: 0.7em; font-size: 0.75em; }
+.reveal .vuelta span { border: 2px dashed var(--borde); border-radius: 8px; padding: 0.4em 0.8em; color: var(--gris); }
+
+/* Autómata */
+.reveal .automata { display: flex; align-items: center; gap: 0.25em; margin: 0.6em 0; font-size: 0.6em; }
+.reveal .automata i {
+  font-style: normal; flex: 0 0 2.4em; height: 2.4em; border-radius: 50%;
+  border: 2px solid var(--azul); display: grid; place-items: center; font-weight: 700;
+}
+.reveal .automata i.final { border-color: var(--verde); color: var(--verde); box-shadow: 0 0 0 4px var(--fondo), 0 0 0 6px var(--verde); }
+.reveal .automata b { flex: 1; text-align: center; color: var(--gris); font-weight: 400; border-bottom: 2px solid var(--borde); padding-bottom: 0.2em; }
+.reveal pre.formato {
+  font-family: var(--r-code-font); font-size: 0.8em; color: var(--amarillo);
+  text-align: center; margin: 0.8em 0; white-space: pre;
+}
+
+/* Tarjetas */
+.reveal .tarjeta { background: var(--caja); border: 2px solid var(--borde); border-radius: 12px; padding: 0.8em 1.1em; font-size: 0.85em; }
+.reveal .tarjeta h3 { font-size: 1.05em; }
+
+/* Resumen final */
+.reveal .resumen { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6em; font-size: 0.62em; margin-bottom: 1.2em; }
+.reveal .resumen > div { background: var(--caja); border: 2px solid var(--borde); border-radius: 10px; padding: 0.7em; }
+.reveal .resumen > div.destacado { border-color: var(--amarillo); }
+.reveal .resumen .numero { color: var(--amarillo); font-weight: 700; font-size: 1.3em; }
+.reveal blockquote {
+  width: 100%; box-sizing: border-box; margin: 0; padding: 0.7em 1em; box-shadow: none; font-style: normal;
+  border-left: 4px solid var(--amarillo); background: rgba(0, 0, 0, 0.25); font-size: 1.05em; line-height: 1.4;
+}
+
+/* ===================== Diapositivas interactivas ===================== */
+
+/* Las barras se mueven con suavidad cuando cambian los números */
+.reveal .barra .pista i, .reveal .fila .pista i { transition: width 0.35s ease; }
+
+/* Botones */
+.reveal .boton {
+  font: inherit; font-size: 0.6em; color: var(--texto); cursor: pointer;
+  background: var(--caja); border: 2px solid var(--borde); border-radius: 8px; padding: 0.35em 0.8em;
+}
+.reveal .boton:hover { border-color: var(--azul); }
+.reveal .boton.activa { border-color: var(--amarillo); color: var(--amarillo); }
+.reveal .boton.fuerte { background: var(--azul); border-color: var(--azul); color: var(--fondo); font-weight: 700; }
+.reveal .boton:disabled { opacity: 0.4; cursor: default; }
+.reveal .botonera > .gris { font-size: 0.6em; }
+.reveal .botonera { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4em 0.5em; margin: 0.5em 0; }
+
+/* Diapositivas de inferencia (el clasificador de imágenes y el LLM):
+   a la izquierda las entradas para elegir, en el medio la red, a la derecha las barras */
+.reveal .inferencia { display: grid; grid-template-columns: 290px 1fr; gap: 1.1em; align-items: center; margin: 0.4em 0 0.6em; }
+.reveal .entradas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4em; }
+.reveal .entradas.textos { grid-template-columns: 1fr; }
+.reveal .entrada {
+  font: inherit; cursor: pointer; background: var(--caja); border: 3px solid var(--borde);
+  border-radius: 14px; padding: 0.15em 0; line-height: 1.2;
+}
+.reveal .entrada:hover { border-color: var(--azul); }
+.reveal .entrada.activa { border-color: var(--amarillo); }
+.reveal .entrada .icono { position: relative; display: inline-block; font-size: 1.9em; }
+/* El disfraz: la cara del perro, encima de la cabeza de la persona */
+.reveal .entrada .icono i { position: absolute; left: 50%; top: -0.12em; transform: translateX(-50%); font-style: normal; font-size: 0.5em; }
+/* Las entradas del LLM son textos */
+.reveal .entrada.texto { font-size: 0.58em; color: var(--texto); text-align: left; padding: 0.75em 0.9em; line-height: 1.3; }
+/* Al elegir una entrada, el botón da un saltito: «sale» hacia la red */
+.reveal .entrada.enviando { animation: enviar 0.3s ease; }
+@keyframes enviar { 50% { transform: scale(1.07); } }
+
+/* A la derecha de las entradas: arriba el título, en el medio la red y las barras, abajo la respuesta.
+   Cada barra mide 40 px de alto y hay 12 px entre una y otra (los mismos números que en interactivo.js):
+   así la red mide lo mismo que el bloque de barras y cada neurona de salida queda a la altura de la suya. */
+.reveal .salida-red { display: grid; grid-template-columns: 330px 1fr; column-gap: 6px; align-items: start; }
+.reveal .titulo-red { grid-column: 2; grid-row: 1; font-size: 0.8em; color: var(--gris); margin: 0 0 0.4em; }
+.reveal .salida-red .red { grid-column: 1; grid-row: 2; display: block; }
+.reveal .salida-red .barras { grid-column: 2; grid-row: 2; font-size: 0.8em; gap: 12px; }
+.reveal .salida-red .barra { height: 40px; grid-template-columns: 5.2em 1fr 3.4em; }
+.reveal .salida-red .barra .nombre { text-align: left; }
+/* La última barra del LLM junta a todos los otros tokens */
+.reveal .salida-red .barra.resto .nombre { font-family: inherit; font-size: 0.85em; color: var(--gris); }
+.reveal .salida-red .barra.resto .pista i { background: var(--gris); }
+.reveal .pie-red {
+  grid-column: 1; grid-row: 3; text-align: center; margin: 0.6em 0 0;
+  font-size: 0.5em; color: var(--gris); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.reveal .respuesta-red { grid-column: 2; grid-row: 3; font-size: 0.9em; margin: 0.4em 0 0; }
+.reveal .respuesta-red strong { color: var(--amarillo); }
+
+/* La red neuronal: cables grises fijos, la señal en celeste y las neuronas que se encienden */
+.reveal .red .cable { stroke: #fff; stroke-opacity: 0.07; stroke-width: 1; }
+.reveal .red .senal { stroke: var(--azul); stroke-opacity: 0; stroke-width: 1.6; stroke-linecap: round; }
+.reveal .red .neurona { fill: var(--fondo); stroke: var(--borde); stroke-width: 2; }
+.reveal .red .neurona.resto { stroke-dasharray: 3 3; }
+.reveal .red .luz { fill: var(--azul); fill-opacity: 0; transition: fill-opacity 0.2s ease; }
+/* La neurona ganadora lleva además un borde amarillo, para que se distinga aunque brille poco */
+.reveal .red .luz.gana { fill: var(--amarillo); stroke: var(--amarillo); stroke-width: 2; }
+
+/* Tres ideas cortas en una fila, debajo de la red */
+.reveal .tres-ideas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2em; font-size: 0.68em; margin-top: 0.4em; }
+.reveal .tres-ideas p { margin: 0; padding-left: 0.7em; border-left: 3px solid var(--borde); }
+
+/* Tokenizador */
+.reveal .tokens-grandes { display: flex; flex-wrap: wrap; gap: 0.25em; margin: 0.9em 0 0.6em; min-height: 3.2em; align-items: flex-start; }
+.reveal .ficha {
+  display: inline-flex; flex-direction: column; align-items: center;
+  font-family: var(--r-code-font); border-radius: 6px; padding: 0.15em 0.35em; white-space: pre;
+}
+.reveal .ficha b { font-weight: 400; }
+.reveal .ficha small { display: none; font-size: 0.45em; color: var(--texto); opacity: 0.75; margin-top: 0.2em; }
+.reveal .con-numeros .ficha small { display: block; }
+.reveal .ficha.color-0 { background: #2b5f6e; }
+.reveal .ficha.color-1 { background: #6e5a2b; }
+.reveal .ficha.color-2 { background: #3f6e2b; }
+.reveal .ficha.color-3 { background: #6e2b4a; }
+.reveal .ficha.color-4 { background: #3d3a80; }
+.reveal .ficha.rara { background: none; border: 1px dashed var(--gris); color: var(--gris); }
+.reveal .pie-tokens { display: flex; align-items: center; gap: 1em; font-size: 0.9em; }
+.reveal .pie-tokens .gris { font-size: 0.75em; }
+
+/* Gráfico de logits y probabilidades */
+.reveal .grafico { display: grid; grid-template-columns: 1.55fr 1fr; gap: 1.4em; align-items: start; margin-top: 0.3em; }
+.reveal .grafico.solo { grid-template-columns: 1fr; }
+/* Sin perillas tampoco se muestran los logits: solo las probabilidades */
+.reveal .grafico.solo .grafico-tabla { font-size: 0.62em; }
+.reveal .grafico.solo .fila { grid-template-columns: 9em 1fr 3.6em; }
+.reveal .grafico.solo .fila > :nth-child(2), .reveal .grafico.solo .fila > :nth-child(3) { display: none; }
+.reveal .grafico-tabla { display: grid; gap: 0.25em; font-size: 0.56em; }
+.reveal .fila { display: grid; grid-template-columns: 7.5em 3.2em 5em 1fr 3.6em; align-items: center; gap: 0.6em; }
+.reveal .fila.encabezado { color: var(--gris); font-size: 0.85em; letter-spacing: 0.06em; text-transform: uppercase; }
+.reveal .fila.encabezado span:first-child { text-align: right; }
+.reveal .fila .nombre { font-family: var(--r-code-font); text-align: right; white-space: pre; }
+.reveal .fila .numero-logit { font-variant-numeric: tabular-nums; text-align: right; color: var(--verde); }
+.reveal .fila .pista { height: 1.05em; background: rgba(255, 255, 255, 0.06); border-radius: 4px; overflow: hidden; }
+.reveal .fila .pista i { display: block; height: 100%; background: var(--azul); border-radius: 4px; }
+.reveal .fila .pista.logit i { background: var(--verde); opacity: 0.75; }
+.reveal .fila .valor { font-variant-numeric: tabular-nums; color: var(--gris); }
+.reveal .fila.resto .nombre { font-family: inherit; color: var(--gris); }
+.reveal .fila.resto .pista i { background: var(--gris); }
+.reveal .fila.tapada { opacity: 0.35; }
+.reveal .fila.tapada .nombre { text-decoration: line-through; color: var(--rojo); }
+
+.reveal .perillas { display: grid; gap: 0.7em; }
+.reveal .perilla { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0.1em 0.6em; font-size: 0.62em; }
+.reveal .perilla input { grid-column: 1 / -1; grid-row: 2; width: 100%; accent-color: var(--amarillo); cursor: pointer; }
+.reveal .perilla .valor-perilla { color: var(--amarillo); font-variant-numeric: tabular-nums; font-weight: 700; }
+.reveal .carrera { font-size: 0.6em; color: var(--gris); margin: 1em 0 0.6em; }
+.reveal .carrera strong { color: var(--texto); }
+.reveal .salidas { display: flex; flex-wrap: wrap; gap: 0.25em; margin-top: 0.5em; font-size: 0.55em; min-height: 4em; align-content: flex-start; }
+.reveal .formula {
+  font-family: var(--r-code-font); font-size: 0.5em; white-space: nowrap; background: #0a1320;
+  border-radius: 8px; padding: 0.6em 0.9em; margin: 0 0 1em; line-height: 1.5;
+}
+
+/* Loop paso a paso */
+.reveal .loop-vivo .caja.ancho { font-size: 0.95em; white-space: pre-wrap; }
+.reveal .loop-vivo .barras { margin: 0.8em 0 0.4em; max-width: 760px; min-height: 9.5em; align-content: start; }
+.reveal .loop-vivo .barra { grid-template-columns: 8em 1fr 3.6em; }
+.reveal .loop-vivo .barra .nombre { white-space: pre; }
+.reveal .grafico .nota { margin-top: 1.4em; }
+.reveal .grafico .nota ul { font-size: 0.62em; margin-left: 1em; }
+.reveal .grafico .nota li { margin: 0.5em 0; }
+
+/* Diapositiva de tokens: tres opciones, una por fila. A la izquierda la idea, a la derecha los ejemplos */
+.reveal .opciones { display: grid; gap: 0.5em; margin-top: 0.5em; }
+.reveal .opcion {
+  display: grid; grid-template-columns: 300px 1fr; gap: 1.2em; align-items: center;
+  background: var(--caja); border: 2px solid var(--borde); border-radius: 12px; padding: 0.55em 1em; font-size: 0.6em;
+}
+.reveal .opcion.elegida { border-color: var(--verde); }
+.reveal .opcion h3 { font-size: 1.45em; margin: 0 0 0.15em; }
+.reveal .opcion p { margin: 0.2em 0; }
+.reveal .opcion .muestra { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.reveal .opcion .problema { color: var(--texto); margin-top: 0.45em; }
+.reveal .opcion .ficha.suelta { background: #33465e; }
+/* Una palabra armada con tokens: empanadas = em pan adas */
+.reveal .opcion .armadas { gap: 0.35em 1.3em; }
+.reveal .opcion .armada { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.reveal .opcion .armada em { font-style: normal; color: var(--gris); }
+.reveal .opcion .armada b { font-weight: 400; color: var(--gris); margin: 0 0.3em; }
+
+/* En la versión con tokens, el texto de cada botón va partido en fichas */
+.reveal .entrada.texto .ficha { display: inline-block; padding: 0.05em 0.2em; margin: 2px 1px; font-size: 0.92em; }
+
+/* Versión con logits: las barras van en verde, el color de los logits en el resto de la presentación */
+.reveal .inferencia.logits .barra .pista i { background: var(--verde); }
+.reveal .inferencia.logits .barra.viva .pista i { background: var(--amarillo); }
+.reveal .inferencia.logits .barra .valor { color: var(--verde); }
+.reveal .inferencia.logits .barra.viva .valor { color: var(--amarillo); }
+.reveal .inferencia.logits .barra.resto .pista { background: none; }
+
+/* Diapositiva del loop: el texto a la izquierda, la red y las barras a la derecha */
+.reveal .entrada-loop { display: grid; gap: 0.5em; }
+.reveal .texto-loop { font-size: 0.62em; text-align: left; line-height: 1.45; min-height: 7em; padding: 0.8em 0.9em; white-space: pre-wrap; }
+/* El token recién agregado aparece en amarillo y pasa a celeste */
+.reveal .token-nuevo { animation: llegar 1.2s ease; }
+@keyframes llegar { 0% { color: var(--amarillo); background: rgba(244, 211, 69, 0.25); } 100% { color: inherit; background: none; } }
+.reveal .vuelve { font-size: 0.5em; color: var(--gris); margin: 0; opacity: 0.25; transition: opacity 0.3s, color 0.3s; }
+.reveal .vuelve.activo { opacity: 1; color: var(--amarillo); }
+.reveal .entrada-loop .botonera { margin: 0; }

@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Taller: LLMs y salidas estructuradas</title>
+  <link rel="stylesheet" href="vendor/reset.css">
+  <link rel="stylesheet" href="vendor/reveal.css">
+  <link rel="stylesheet" href="vendor/theme/black.css">
+  <link rel="stylesheet" href="vendor/plugin/highlight/monokai.css">
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ====================== APERTURA ====================== -->
+<section class="portada">
+  <p class="sobretitulo">Isaac Guillermo Gaete / Desarrollador de software @Tiendanube </p>
+  <h1>Salidas estructuradas con <span class="amarillo">LLMs</span> para evitar el <span class="azul">caos</span></h1>
+  <aside class="notes">
+    Bienvenida breve. Lo primero es el ejercicio 00: la descarga del modelo corre mientras explicamos el clasificador.
+  </aside>
+</section>
+
+<section>
+  <h2>¿Cómo vamos a trabajar?</h2>
+  <p class="chico">Primero, el taller se baja de <strong>GitHub</strong>. <span class="gris">Si ya lo tenés en tu máquina, este paso está hecho.</span></p>
+  <pre class="comando"><code class="language-bash" data-trim>
+wget -qO- https://github.com/GuillermoGaete/llm-salidas-estructuradas/archive/refs/heads/main.tar.gz \
+  | tar xz
+cd llm-salidas-estructuradas-main
+  </code></pre>
+  <div class="dos-columnas fragment" style="align-items: end">
+    <div>
+      <p>Cada ejercicio es una <strong>carpeta</strong>:</p>
+      <pre class="arbol">ejercicios/
+├── 00-preparacion/
+│   ├── README.md      <span class="gris">← las instrucciones</span>
+│   └── preparar.py    <span class="gris">← el programa</span>
+├── 01-tokens/
+└── 02-logits/</pre>
+    </div>
+    <div>
+      <ol class="pasos">
+        <li><strong>Pequeña</strong> introducción (si corresponde).</li>
+        <li><strong>Corremos</strong> el programa y vemos la salida.</li>
+        <li><strong>Cambiamos</strong> un valor y lo ejecutamos de nuevo.</li>
+        <li>Charlar sobre los resultados.</li>
+      </ol>
+    </div>
+  </div>
+  <aside class="notes">
+    Primer paso: preguntar quién ya tiene el repositorio bajado. El que no, lo baja con el comando (es el mismo del README).
+    Con un clic aparecen las carpetas y la forma de trabajo.
+    No hay que escribir funciones: los programas ya están completos. El trabajo es correr, cambiar valores y observar.
+  </aside>
+</section>
+
+<!-- ====================== 00 PREPARACIÓN ====================== -->
+<section class="ejercicio" data-background-color="#12303a">
+  <h2><span class="numero">00</span> Preparar el entorno</h2>
+  <ol class="pasos">
+    <li>Instalar las librerías</li>
+  </ol>
+  <pre class="comando"><code class="language-bash" data-trim>
+uv sync
+  </code></pre>
+  <ol class="pasos" start="2" style="counter-reset: paso 1">
+    <li>Bajar los modelos (2,1 GB) y probarlos</li>
+  </ol>
+  <pre class="comando"><code class="language-bash" data-trim>
+cd ejercicios/00-preparacion
+uv run python preparar.py
+  </code></pre>
+  <p class="chico">Tiene que terminar con <span class="verde">🎉 Todo listo</span>.
+    <span class="gris">Si falta <code>uv</code>, el <code>README.md</code> principal dice cómo instalarlo.</span></p>
+  <aside class="notes">
+    Si las máquinas ya están preparadas, esto es solo una comprobación y tarda segundos.
+    Si no, arrancar con esto: la descarga tarda. Baja primero el modelo chico, el que usan los ejercicios 01 y 02. Mientras baja, seguir con el clasificador.
+    Un modelo es un archivo de números: Qwen3-0.6B, 600 millones de parámetros, licencia Apache 2.0.
+  </aside>
+</section>
+
+<!-- ====================== INTRODUCCIÓN ====================== -->
+<section>
+  <h2>Parte 1</h2>
+  <ul class="espaciada">
+    <li><strong class="amarillo">Clasificadores</strong></li>
+    <li><strong class="azul">LLMs</strong></li>
+    <li><strong class="verde">Tokens</strong></li>
+  </ul>
+  <aside class="notes">
+    Solo anunciar los tres temas, sin explicarlos: cada uno tiene su diapositiva y su ejercicio.
+    El hilo: un LLM es un clasificador que se usa muchas veces seguidas.
+  </aside>
+</section>
+
+<!-- ====================== CLASIFICADOR ====================== -->
+<section>
+  <h2>Clasificadores</h2>
+  <!-- Para usar fotos en vez de emojis: cambiar IMAGENES en interactivo.js. -->
+  <div class="inferencia" data-interactivo="clasificador"></div>
+  <ul class="chico">
+    <li>No responde «es un perro»: asigna un score entre las etiquetas que conoce.</li>
+    <li class="fragment">No puede decir «no sé» ni «ninguna».</li>
+  </ul>
+  <aside class="notes">
+    La diapositiva arranca vacía. Hacer clic en cada imagen. Orden sugerido: perro, persona, persona disfrazada, lobo, león, pizza.
+    En cada clic la señal recorre la red, capa por capa, y recién cuando llega a la salida se llenan las barras: eso es inferir.
+    Cada imagen enciende neuronas distintas. Las cinco neuronas de la derecha son las cinco etiquetas: brillan más las más probables.
+    El dibujo es un esquema: una red real tiene millones de conexiones, no noventa.
+    Persona disfrazada: las probabilidades se reparten. El clasificador igual elige una.
+    Lobo: no está entre las etiquetas, y aun así responde «perro» con confianza.
+    León: tampoco está entre las etiquetas. Se reparte entre «gato» y «oso», las dos que más se le parecen.
+    Pizza: no tiene nada que ver con ninguna etiqueta. El puntaje se reparte entre todas y la red igual responde una («auto»): no puede decir «ninguna».
+    Los porcentajes de esta diapositiva son ilustrativos, no salen de un modelo real.
+  </aside>
+</section>
+
+<!-- ====================== LLM ====================== -->
+<section>
+  <h2>LLM</h2>
+  <div class="inferencia" data-interactivo="llm"></div>
+  <div class="tres-ideas">
+    <p>El input de un LLM es <strong>texto</strong> (principalmente).</p>
+    <p>La «etiqueta» es la <strong class="azul">próxima palabra</strong>.</p>
+  </div>
+  <aside class="notes">
+    Es la misma diapositiva que la del clasificador: en vez de una imagen entra un texto, y la respuesta es la palabra que sigue.
+    Hacer clic en cada texto. Orden sugerido: «Uno, dos, tres, cuatro,» (el modelo está muy seguro), «Hola, ¿cómo» (duda entre varias opciones) y «Mi comida favorita es la» (el que usamos en el resto de la clase).
+    Los porcentajes son reales, de Qwen3-0.6B. La red del dibujo es un esquema: la red real tiene 600 millones de parámetros.
+    Simplificación: acá se habla de palabras. En realidad el modelo elige tokens, que a veces son solo un pedazo de palabra; eso se ve en la diapositiva siguiente. Para esta diapositiva, cada pedazo se completó hasta formar la palabra entera.
+    «El resto» junta todas las otras opciones.
+    «Más probable» no quiere decir que sea la que sale: eso se ve más adelante, en la diapositiva del sorteo.
+  </aside>
+</section>
+
+<section>
+  <h2>Tokens</h2>
+  <p class="chico">¿Cómo definimos la lista de etiquetas?</p>
+  <div class="opciones">
+    <div class="opcion">
+      <div>
+        <h3 class="rojo">Palabras</h3>
+      </div>
+      <div>
+        <p class="muestra"><span class="ficha suelta">empanada</span><span class="ficha suelta">empanadas</span><span class="ficha suelta">empanadita</span><span class="ficha suelta">empanar</span><span class="gris">… y no termina nunca</span></p>
+        <p class="problema"><span class="rojo">✗</span> «empanadaza» no está en la lista: el modelo no la puede leer ni escribir.</p>
+      </div>
+    </div>
+    <div class="opcion fragment">
+      <div>
+        <h3 class="rojo">Letras</h3>
+      </div>
+      <div>
+        <p class="muestra"><span class="ficha suelta">e</span><span class="ficha suelta">m</span><span class="ficha suelta">p</span><span class="ficha suelta">a</span><span class="ficha suelta">n</span><span class="ficha suelta">a</span><span class="ficha suelta">d</span><span class="ficha suelta">a</span><span class="ficha suelta">s</span></p>
+        <p class="problema"><span class="rojo">✗</span> 9 pasos para escribir una sola palabra.<p>
+      </div>
+    </div>
+    <div class="opcion elegida fragment">
+      <div>
+        <h3 class="verde">Tokens</h3>
+        <p>Una etiqueta por cada <strong>secuencia</strong> que se repite mucho.</p>
+      </div>
+      <div>
+        <p class="muestra armadas">
+          <span class="armada"><em>empanadas</em><b>=</b><span class="ficha color-0">em</span><span class="ficha color-1">pan</span><span class="ficha color-2">adas</span></span>
+          <span class="armada"><em>empanar</em><b>=</b><span class="ficha color-0">em</span><span class="ficha color-1">pan</span><span class="ficha color-3">ar</span></span>
+          <span class="armada"><em>campana</em><b>=</b><span class="ficha color-4">cam</span><span class="ficha color-1">pan</span><span class="ficha color-3">a</span></span>
+          <span class="armada"><em>casadas</em><b>=</b><span class="ficha color-4">cas</span><span class="ficha color-2">adas</span></span>
+          <span class="armada"><em>empanadaza</em><b>=</b><span class="ficha color-0">em</span><span class="ficha color-1">pan</span><span class="ficha color-3">ad</span><span class="ficha color-4">aza</span></span>
+        </p>
+        <p class="problema"><span class="verde">✓</span> Con los mismos pedazos se arman palabras distintas, incluso una inventada.</p>
+      </div>
+    </div>
+  </div>  </aside>
+</section>
+
+<section>
+  <h2>LLM, ahora con <span class="azul">tokens</span></h2>
+  <div class="inferencia" data-interactivo="llm" data-modo="tokens"></div>
+  <div class="tres-ideas">
+    <p>El texto entra <strong>partido en tokens</strong>.</p>
+    <p>La «etiqueta» es el <strong class="azul">próximo token</strong>.</p>
+  </div>
+  <aside class="notes">
+    Es la misma diapositiva del LLM de antes, pero ahora tal como pasa de verdad: con tokens.
+    Los textos de la izquierda están partidos en los tokens reales. El punto «·» marca un espacio.
+    Comparar con la versión de palabras: donde decía «ensalada» ahora dice «·ens», y donde decía «estás», «·est». El modelo eligió solo el primer pedazo; el resto de la palabra sale en los pasos siguientes.
+    En «Uno, dos, tres, cuatro,» aparecen también signos («...»): un signo es un token como cualquier otro.
+    «El resto» junta todos los otros tokens. Los porcentajes son reales, de Qwen3-0.6B.
+  </aside>
+</section>
+
+<section>
+  <h2>¿Qué es un <span class="azul">token</span>?</h2>
+  <p class="chico">Un pedacito de texto con un número. El modelo <strong>solo ve los números</strong>.</p>
+  <div data-interactivo="tokenizador"></div>
+  <aside class="notes">
+    Hacer clic en cada frase. El punto «·» marca un espacio: casi siempre el espacio va pegado al comienzo del token.
+    «empanadas» son 3 tokens. La «ñ» y el emoji se parten en bytes: el modelo vio poco de eso al entrenarse.
+    Con «Ver los números» aparece lo que entra de verdad al modelo.
+  </aside>
+</section>
+
+<section class="ejercicio" data-background-color="#12303a">
+  <h2><span class="numero">01</span> Tokens</h2>
+  <pre class="comando"><code class="language-bash" data-trim>
+cd ejercicios/01-tokens
+uv run python tokens.py
+  </code></pre>
+  <ol class="pasos">
+    <li>Corrélo y mirá cómo se parte la frase</li>
+    <li>Cambiá <code>TEXTO</code>: tu nombre, una palabra larga, un emoji</li>
+    <li>Probá la misma palabra con mayúscula y con un espacio adelante</li>
+  </ol>
+  <aside class="notes">
+    Las palabras frecuentes (sobre todo en inglés) son un solo token; las raras se arman con pedazos.
+    «Hola» y « hola» son tokens distintos. Un nombre poco común se parte en varios.
+  </aside>
+</section>
+
+<!-- ====================== LOGITS ====================== -->
+<section>
+  <h2>Lo que sale de la red: <span class="verde">logits</span></h2>
+  <div class="inferencia" data-interactivo="llm" data-modo="logits"></div>
+  <div class="tres-ideas">
+    <p>La red no devuelve porcentajes: devuelve un <strong class="verde">puntaje</strong> por token, el logit.</p>
+    <p>Más alto = mejor candidato. Puede ser negativo.</p>
+  </div>
+  <aside class="notes">
+    Es la misma diapositiva del LLM por tercera vez: primero con palabras, después con tokens, ahora con lo que sale de verdad de la red.
+    Hasta acá mostramos porcentajes, pero eso ya es un paso posterior. La red entrega un número por cada token: el logit.
+    Los logits no suman 100 ni están entre 0 y 1: son puntajes sueltos. Por eso acá no hay fila «el resto»; los puntos suspensivos recuerdan que hay muchos más.
+    Hacer clic en los tres textos y comparar: en «Uno, dos, tres, cuatro,» el primero le saca mucha ventaja al segundo; en «Hola, ¿cómo» están todos cerca.
+    Los valores son reales, de Qwen3-0.6B. La diapositiva siguiente muestra cómo se pasa de logits a probabilidades.
+  </aside>
+</section>
+
+<section>
+  <h2><span class="verde">Logits</span> y <span class="azul">probabilidades</span></h2>
+  <div class="grafico" data-interactivo="grafico" data-filas="10">
+    <div class="nota">
+      <p class="formula">probabilidad = softmax(logit)</p>
+      <ul>
+        <li><strong class="verde">Logit</strong>: el puntaje que da el modelo. Puede ser negativo.</li>
+        <li><strong class="azul">Probabilidad</strong>: siempre positiva, y todas suman 100%.</li>
+        <li>El <strong>orden</strong> nunca cambia.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes">
+    El modelo no devuelve probabilidades: devuelve un puntaje por token, el logit. Puede ser negativo y no suma nada.
+    La probabilidad es el mismo número transformado (softmax): todo positivo y que sume 100%. El orden no cambia nunca.
+    Mirar las dos columnas: el logit más alto es siempre la probabilidad más alta.
+    La fila «el resto» junta a todos los tokens que no se muestran: son muchos, y entre todos suman bastante.
+  </aside>
+</section>
+
+<section>
+  <h2><span class="amarillo">Sorteo</span></h2>
+  <div class="grafico" data-interactivo="grafico" data-controles="sortear" data-filas="10"></div>
+  <aside class="notes">
+    Apretar «Sortear» varias veces: sale pizza una de cada cuatro, y cada tanto «uno del resto», o sea, un token de los que no se muestran en la tabla.
+    La idea para llevarse: el modelo no elige el más probable, tira un dado cargado. Por eso la misma pregunta da respuestas distintas.
+    Esto prepara la máscara: si algo tiene probabilidad baja puede salir igual; si tiene probabilidad cero, no sale nunca.
+  </aside>
+</section>
+
+<section>
+  <h2>…y eso se repite, <span class="amarillo">un token por vez</span></h2>
+  <div class="inferencia" data-interactivo="loop"></div>
+  <div class="vuelta">
+    <span>① logits del próximo token</span>
+    <span>② sorteo</span>
+    <span>③ lo agrego al texto y vuelvo a ①</span>
+  </div>
+  <aside class="notes">
+    Una generación real del modelo mediano (Qwen3-1.7B): «Mi comida favorita es la pizza, porque es deliciosa y es fácil de preparar.» Los porcentajes son los de cada paso.
+    Cuando el token que sale no está entre los cinco favoritos, queda marcado «el resto».
+    Es la misma red de las diapositivas anteriores. En cada clic: el texto de la izquierda entra a la red, salen las probabilidades, se marca en amarillo el token que salió en el sorteo, y ese token se agrega al texto de la izquierda.
+    Remarcar la vuelta: en el paso siguiente, lo que entra a la red es el texto con el token nuevo incluido. La red no tiene memoria de lo que escribió: lo vuelve a leer.
+    No siempre sale el favorito.
+    El modelo no «escribe una respuesta»: clasifica, sortea, agrega, repite.
+  </aside>
+</section>
+
+<section class="ejercicio" data-background-color="#12303a">
+  <h2><span class="numero">02</span> Logits, sorteo y generación</h2>
+  <pre class="comando"><code class="language-bash" data-trim>
+cd ejercicios/02-logits
+uv run python 1_logits.py
+uv run python 2_muestreo.py
+uv run python 3_generar.py
+  </code></pre>
+  <ol class="pasos">
+    <li><code>1_logits.py</code>: los logits y las probabilidades</li>
+    <li><code>2_muestreo.py</code>: tirar el dado muchas veces y contar qué sale</li>
+    <li><code>3_generar.py</code>: una inferencia completa, paso a paso</li>
+  </ol>
+  <aside class="notes">
+    Para conversar: ¿El token que sale es siempre el más probable? ¿Por qué la misma pregunta a un chat da respuestas distintas cada vez?
+    En 2_muestreo.py, comparar las dos tablas: lo que salió se parece a las probabilidades, pero no es idéntico.
+    En 3_generar.py, correrlo varias veces: cada vez escribe otro texto.
+  </aside>
+</section>
+
+<!-- ====================== SEGUNDA PARTE ======================
+     De acá en adelante son las diapositivas de la versión anterior del taller
+     (máscara, Outlines, kiosco). Falta repensarlas: todavía nombran el «gancho»
+     y la numeración vieja de los ejercicios. -->
+
+<!-- ====================== 04 MÁSCARA ====================== -->
+<section>
+  <h2 class="pregunta">¿Cómo hago para que algo que tira dados cumpla <span class="amarillo">siempre</span>?</h2>
+  <p class="respuesta fragment">Le <span class="amarillo">tapo las caras</span> que no sirven<br>antes de tirar.</p>
+  <aside class="notes">
+    Dejar que lo propongan ellos antes de mostrar la respuesta. Ya tienen todo: saben que hay puntajes y un sorteo.
+  </aside>
+</section>
+
+<section>
+  <h2>La máscara</h2>
+  <p class="chico gris">Quiero una patente <code>AB 123 CD</code>. Ya se escribió «AB». Ahora <strong>tiene</strong> que venir un espacio.</p>
+  <div class="dos-columnas centradas">
+    <div>
+      <h3>Lo que quiere el modelo</h3>
+      <div class="barras compacto">
+        <div class="barra"><span class="nombre">hola</span><span class="pista"><i style="width:34%"></i></span><span class="valor">34%</span></div>
+        <div class="barra"><span class="nombre">7</span><span class="pista"><i style="width:25%"></i></span><span class="valor">25%</span></div>
+        <div class="barra"><span class="nombre">«&nbsp;»</span><span class="pista"><i style="width:12%"></i></span><span class="valor">12%</span></div>
+        <div class="barra"><span class="nombre">K</span><span class="pista"><i style="width:21%"></i></span><span class="valor">21%</span></div>
+        <div class="barra"><span class="nombre">«&nbsp;3»</span><span class="pista"><i style="width:8%"></i></span><span class="valor">8%</span></div>
+      </div>
+    </div>
+    <div>
+      <h3>Después de la máscara</h3>
+      <div class="barras compacto">
+        <div class="barra tapada"><span class="nombre">hola</span><span class="pista"></span><span class="valor">0%</span></div>
+        <div class="barra tapada"><span class="nombre">7</span><span class="pista"></span><span class="valor">0%</span></div>
+        <div class="barra viva"><span class="nombre">«&nbsp;»</span><span class="pista"><i style="width:60%"></i></span><span class="valor">60%</span></div>
+        <div class="barra tapada"><span class="nombre">K</span><span class="pista"></span><span class="valor">0%</span></div>
+        <div class="barra viva"><span class="nombre">«&nbsp;3»</span><span class="pista"><i style="width:40%"></i></span><span class="valor">40%</span></div>
+      </div>
+    </div>
+  </div>
+  <p>Puntaje <code>−∞</code> → probabilidad <strong>cero</strong>. No es «poco probable»: es <span class="amarillo">imposible</span>.</p>
+  <aside class="notes">
+    Números ilustrativos. Notar que «␣3» también vale: un token puede cubrir más de un carácter del formato.
+    Las probabilidades de los que quedan se reparten de nuevo (12 y 8 pasan a 60 y 40).
+  </aside>
+</section>
+
+<section>
+  <h2>¿Quién decide qué se tapa? Un <span class="amarillo">autómata</span></h2>
+  <div class="automata">
+    <i>0</i><b>letra</b><i>1</i><b>letra</b><i>2</i><b>espacio</b><i>3</i><b>dígito</b><i>4</i><b>dígito</b><i>5</i><b>dígito</b><i>6</i><b>espacio</b><i>7</i><b>letra</b><i>8</i><b>letra</b><i class="final">9</i>
+  </div>
+  <pre class="formato">FORMATO = "LL DDD LL"</pre>
+  <ul class="espaciada">
+    <li>El <strong>estado</strong> es «cuánto del formato ya escribí».</li>
+    <li>En cada estado, <strong>solo algunos tokens sirven</strong>. El resto se tapa.</li>
+    <li>Un token sirve si <strong>todos</strong> sus caracteres hacen avanzar el autómata.</li>
+  </ul>
+</section>
+
+<section class="ejercicio central" data-background-color="#3a2a12">
+  <h2><span class="numero">04</span> La máscara, a mano</h2>
+  <pre class="comando"><code class="language-bash" data-trim>
+cd ejercicios/04-mascara
+python ejercicio.py
+uv run python con_modelo.py
+  </code></pre>
+  <ol class="pasos">
+    <li><code>enmascarar</code>: los no permitidos pasan a <code>-math.inf</code></li>
+    <li><code>avanzar</code>: estado + carácter → estado nuevo, o <code>None</code></li>
+    <li><code>probar_token</code>: lo mismo para un token entero</li>
+    <li>Cambiá el formato: una fecha, un DNI</li>
+  </ol>
+  <aside class="notes">
+    Para conversar: El modelo da puntajes al azar. ¿Puede salir una patente mal formada? 99/99/9999 cumple el formato de fecha. ¿Es una fecha?
+    Con "DD/DD/DDDD" el vocabulario de juguete se traba: no tiene el token "/". Es a propósito:
+    la gramática no puede pedir algo que el vocabulario no sabe escribir. Con el modelo real sí funciona.
+  </aside>
+</section>
+
+<section>
+  <h2><span class="rojo">Pedir</span> no es <span class="verde">forzar</span></h2>
+  <div class="dos-columnas">
+    <div class="tarjeta">
+      <h3 class="rojo">Pedir en el prompt</h3>
+      <p>«Respondé SOLO con JSON»</p>
+      <p class="gris">El modelo <em>casi siempre</em> hace caso.<br>El gancho: 0 de 10.</p>
+    </div>
+    <div class="tarjeta">
+      <h3 class="verde">Forzar en el sorteo</h3>
+      <p>Máscara sobre los puntajes</p>
+      <p class="gris">Lo que rompe el formato tiene probabilidad cero.<br><strong>No puede</strong> salir.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== 05 OUTLINES ====================== -->
+<section>
+  <h2>Lo mismo, con una librería</h2>
+  <pre><code class="language-python" data-trim data-line-numbers="1|3-4|6-7|9-13">
+respuesta = modelo(prompt, tipo_de_salida)
+
+# Lista cerrada: el LLM vuelve a ser un clasificador
+modelo(prompt, Literal["pedido", "consulta", "reclamo"])
+
+# Expresión regular: nuestro "LL DDD LL"
+modelo(prompt, Regex(r"[A-Z]{2} [0-9]{3} [A-Z]{2}"))
+
+# Esquema: un JSON con estos campos y estos tipos
+class Producto(BaseModel):
+    nombre: str
+    precio: int
+modelo(prompt, Producto)
+  </code></pre>
+  <p class="chico">Outlines, XGrammar, llguidance, las gramáticas de llama.cpp: <strong>todas hacen lo que escribiste en el ejercicio 04</strong>.</p>
+  <aside class="notes">
+    Cambian la velocidad y qué gramáticas soportan. Los servicios comerciales («structured outputs», «JSON mode») usan la misma idea.
+  </aside>
+</section>
+
+<section class="ejercicio" data-background-color="#12303a">
+  <h2><span class="numero">05</span> Outlines</h2>
+  <pre class="comando"><code class="language-bash" data-trim>
+cd ejercicios/05-outlines
+uv run python ejercicio.py
+  </code></pre>
+  <ol class="pasos">
+    <li><code>clasificar</code> con <code>Literal</code></li>
+    <li><code>inventar_patente</code> con <code>Regex</code></li>
+    <li><code>Producto</code>: un esquema de tres campos</li>
+  </ol>
+  <aside class="notes">
+    Para conversar: «che, me vino todo helado»: ¿ahora acierta? ¿De dónde salieron los pesos? «hola» no es ninguna de las tres. ¿Qué responde?
+    El círculo se cierra: un LLM con una lista cerrada ES un clasificador, pero sin escribir pesos a mano.
+    «hola» obliga a elegir una de tres: la máscara no deja decir «ninguna». Solución: agregar la clase «otro».
+  </aside>
+</section>
+
+<!-- ====================== 06 KIOSCO ====================== -->
+<section class="ejercicio" data-background-color="#12303a">
+  <h2><span class="numero">06</span> El tomador de pedidos</h2>
+  <div class="cadena">
+    <div class="caja">«dos de carne y una coca»</div>
+    <b>→</b>
+    <div class="caja"><small>modelo + esquema</small><code>Pedido</code></div>
+    <b>→</b>
+    <div class="caja"><small>Python</small>precio × cantidad</div>
+    <b>→</b>
+    <div class="caja verde">$4900</div>
+  </div>
+  <pre class="comando"><code class="language-bash" data-trim>
+cd ejercicios/06-kiosco
+uv run python ejercicio.py
+  </code></pre>
+  <ol class="pasos en-linea">
+    <li><code>Item</code> y <code>Pedido</code></li>
+    <li><code>tomar_pedido</code></li>
+    <li><code>total</code></li>
+    <li>Rompelo</li>
+    <li>Atendé vos</li>
+  </ol>
+  <aside class="notes">
+    Es el mismo problema del gancho. Ahora el programa nunca se rompe al leer.
+    Guiar el paso 4: 400 empanadas, la humita que no está en el menú, «3 de carne, 6 de pollo y dos cocas».
+  </aside>
+</section>
+
+<!-- ====================== CIERRE ====================== -->
+<section>
+  <h2>Formato garantizado <span class="rojo">≠</span> contenido verdadero</h2>
+  <div class="dos-columnas">
+    <div class="tarjeta">
+      <h3 class="verde">La máscara garantiza</h3>
+      <ul>
+        <li>Que el programa pueda <strong>leer</strong> la respuesta. Siempre.</li>
+        <li>Que los campos y los tipos sean los del esquema.</li>
+        <li>Que el producto sea uno del menú.</li>
+      </ul>
+    </div>
+    <div class="tarjeta">
+      <h3 class="rojo">La máscara no garantiza</h3>
+      <ul>
+        <li>Que el pedido sea el que hizo el cliente.</li>
+        <li>Que 400 empanadas tenga sentido.</li>
+        <li>Que el modelo pueda decir «eso no lo tenemos».</li>
+      </ul>
+    </div>
+  </div>
+  <p class="fragment">El modelo convierte texto en datos. <strong>Controlar los datos sigue siendo trabajo nuestro.</strong></p>
+</section>
+
+<section>
+  <h2>Lo que hicimos hoy</h2>
+  <div class="resumen">
+    <div><span class="numero">01</span><p><strong>Clasificador</strong><br>entrada → puntajes → etiqueta</p></div>
+    <div><span class="numero">02</span><p><strong>LLM</strong><br>clasificar el próximo token, en loop</p></div>
+    <div><span class="numero">03</span><p><strong>Sorteo</strong><br>un dado cargado</p></div>
+    <div class="destacado"><span class="numero">04</span><p><strong>Máscara</strong><br>tapar caras antes de tirar</p></div>
+    <div><span class="numero">05·06</span><p><strong>Esquemas</strong><br>la misma máscara, más grande</p></div>
+  </div>
+  <blockquote>Un LLM es un clasificador que se usa en loop.<br>La salida estructurada es tapar opciones antes de elegir.</blockquote>
+  <aside class="notes">
+    Preguntar: ¿qué le contarías a alguien que no vino? Buscar que digan la frase con sus palabras.
+  </aside>
+</section>
+
+</div>
+</div>
+
+<script src="datos.js"></script>
+<script src="vendor/reveal.js"></script>
+<script src="vendor/plugin/highlight.js"></script>
+<script src="vendor/plugin/notes.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: "c/t",
+    width: 1280,
+    height: 720,
+    margin: 0.06,
+    transition: "fade",
+    controls: false,
+    plugins: [RevealHighlight, RevealNotes],
+  });
+</script>
+<script src="interactivo.js"></script>
+</body>
+</html>

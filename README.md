@@ -4,7 +4,18 @@ Taller práctico de 2 horas. Se trabaja con modelos de lenguaje **reales**, que 
 
 > **Un LLM es un clasificador que se usa en loop. La salida estructurada es tapar opciones antes de elegir.**
 
-Por ahora este repositorio tiene solo **la preparación de las máquinas**: esta guía y el programa que descarga los modelos. Los ejercicios y las diapositivas se publican más adelante.
+Este repositorio tiene la guía de instalación, la primera parte del taller (ejercicios 00 a 02) y las diapositivas. La segunda parte se publica más adelante.
+
+## Qué hay
+
+| | Carpeta | Qué se hace |
+|---|---|---|
+| 00 | [`ejercicios/00-preparacion`](ejercicios/00-preparacion) | Instalar las librerías, bajar los modelos y probarlos |
+| 01 | [`ejercicios/01-tokens`](ejercicios/01-tokens) | Cómo se parte un texto en tokens |
+| 02 | [`ejercicios/02-logits`](ejercicios/02-logits) | Logits y probabilidades, el sorteo y una inferencia paso a paso |
+| | [`clases/index.html`](clases/index.html) | Las diapositivas. Se abren con doble clic, sin servidor y sin internet |
+
+Los programas ya están completos y son cortos. El trabajo es correrlos, probar distintos textos y observar.
 
 ## Versiones
 
@@ -61,7 +72,7 @@ cd ejercicios/00-preparacion
 uv run python preparar.py
 ```
 
-Descarga los dos modelos del taller (1,5 GB) a la carpeta `modelos/` y comprueba que cada uno funciona. Si todo salió bien, termina así:
+Descarga los modelos del taller (2,1 GB) a la carpeta `modelos/` y comprueba que cada uno funciona. Si todo salió bien, termina así:
 
 ```
 Python 3.12.3 · llama-cpp-python 0.3.36
@@ -150,7 +161,7 @@ Los pasos 3 y 4 son iguales. En macOS, `uv sync` compila la librería que corre 
 
 Un modelo es **un archivo de números**. Los que usamos están en formato `GGUF` y comprimidos a 4 bits por número (`Q4`), para que ocupen menos. Se descargan de [Hugging Face](https://huggingface.co), sin cuenta ni permiso.
 
-La lista está al comienzo de [`preparar.py`](ejercicios/00-preparacion/preparar.py). Los dos primeros modelos son los del taller. El resto es una **lista tentativa** para probar y comparar: esas líneas están comentadas (empiezan con `#`) y no se descargan.
+La lista está al comienzo de [`preparar.py`](ejercicios/00-preparacion/preparar.py). Los cinco primeros modelos son los del taller. El resto es una **lista tentativa** para probar y comparar: esas líneas están comentadas (empiezan con `#`) y no se descargan.
 
 Para bajar uno de los otros modelos:
 
@@ -162,9 +173,9 @@ Para bajar uno de los otros modelos:
 |---|---|---|---|---|---|---|
 | [Qwen3-0.6B](https://huggingface.co/unsloth/Qwen3-0.6B-GGUF) | **Sí** | Multilingüe | 596 M | 0,4 GB | 151.936 | Apache 2.0 |
 | [Qwen3-1.7B](https://huggingface.co/unsloth/Qwen3-1.7B-GGUF) | **Sí** | Multilingüe | 1.721 M | 1,1 GB | 151.936 | Apache 2.0 |
-| [SmolLM2-135M](https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF) | Comentado | Solo inglés | 135 M | 0,1 GB | 49.152 | Apache 2.0 |
-| [LFM2.5-350M](https://huggingface.co/LiquidAI/LFM2.5-350M-GGUF) | Comentado | Multilingüe (9 idiomas, con español) | 354 M | 0,2 GB | 65.536 | LFM Open License 1.0 |
-| [Granite 4.0 350M](https://huggingface.co/ibm-granite/granite-4.0-350m-GGUF) | Comentado | Multilingüe (12 idiomas, con español) | 352 M | 0,2 GB | 100.352 | Apache 2.0 |
+| [SmolLM2-135M](https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF) | **Sí** | Solo inglés | 135 M | 0,1 GB | 49.152 | Apache 2.0 |
+| [LFM2.5-350M](https://huggingface.co/LiquidAI/LFM2.5-350M-GGUF) | **Sí** | Multilingüe (9 idiomas, con español) | 354 M | 0,2 GB | 65.536 | LFM Open License 1.0 |
+| [Granite 4.0 350M](https://huggingface.co/ibm-granite/granite-4.0-350m-GGUF) | **Sí** | Multilingüe (12 idiomas, con español) | 352 M | 0,2 GB | 100.352 | Apache 2.0 |
 | [Gemma 3 270M](https://huggingface.co/unsloth/gemma-3-270m-it-GGUF) | Comentado | Multilingüe | 268 M | 0,3 GB | 262.144 | Gemma |
 | [SmolLM2-360M](https://huggingface.co/bartowski/SmolLM2-360M-Instruct-GGUF) | Comentado | Solo inglés | 362 M | 0,3 GB | 49.152 | Apache 2.0 |
 | [Qwen3.5-0.8B](https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF) | Comentado | Multilingüe | 752 M | 0,5 GB | 248.320 | Apache 2.0 |
@@ -177,7 +188,7 @@ Para bajar uno de los otros modelos:
 - **Idiomas**: lo que declara la ficha de cada modelo en Hugging Face. «Multilingüe» sin más detalle quiere decir que la ficha no da la lista de idiomas.
 - **Vocabulario**: cuántos tokens distintos conoce el modelo.
 - **Licencia**: las de Gemma, Llama 3.2 y LFM permiten usar los modelos, con condiciones. No son licencias de código abierto como Apache 2.0.
-- Los once modelos comentados suman 6,3 GB.
+- Los ocho modelos comentados suman 5,7 GB.
 
 De la lista tentativa solo comprobamos que cada archivo existe, que se descarga sin cuenta y que la librería reconoce el tipo de modelo. Falta probarlos con los ejercicios.
 
