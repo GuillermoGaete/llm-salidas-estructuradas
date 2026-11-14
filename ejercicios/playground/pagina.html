@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Playground</title>
+  <!-- Un ícono vacío: así el navegador no le pide uno al servidor. -->
+  <link rel="icon" href="data:,">
   <style>
     :root { --fondo: #0f1b2b; --texto: #ece6d9; --gris: #8fa1b3; --azul: #58c4dd; --amarillo: #f4d345; --verde: #83c167; --rojo: #fc6255; --caja: #1a2c44; --borde: #2e4563; }
     * { box-sizing: border-box; }
@@ -464,6 +466,9 @@
       if (opciones.length < 2) {
         estado.className = "estado error";
         estado.textContent = "Hacen falta al menos dos opciones.";
+        // Se borra la cuenta de la corrida anterior, para que no parezca el resultado de esta.
+        elemento("s-cuenta").textContent = "";
+        elemento("s-ultimo").textContent = "";
         return;
       }
       const cuenta = Object.fromEntries(opciones.map((opcion) => [opcion, 0]));

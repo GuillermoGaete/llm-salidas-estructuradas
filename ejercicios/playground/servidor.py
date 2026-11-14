@@ -30,7 +30,7 @@ import outlines
 from llama_cpp import Llama
 from outlines.inputs import Chat
 from outlines.types import Choice
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from casos import ESTRUCTURADOS, SESGOS
 
@@ -248,8 +248,17 @@ def responder_con_formato(origen, nombre, prompt, codigo, maximo, temperatura, f
     try:
         Formato.model_validate_json(texto)
         problema = ""
-    except Exception as error:
-        problema = str(error).split("\n    For further information")[0]
+    except ValidationError as error:
+        # error.errors() trae un problema por cada dato que está mal: dónde está y qué le pasa.
+        renglones = []
+        for uno in error.errors():
+            if uno["type"] == "json_invalid":
+                # Pasa cuando el modelo responde con texto libre, o cuando el JSON quedó cortado.
+                renglones.append("La respuesta no es un JSON válido.")
+            else:
+                lugar = ".".join(str(parte) for parte in uno["loc"])  # por ejemplo: items.0.cantidad
+                renglones.append(lugar + ": " + uno["msg"])
+        problema = "\n".join(renglones)
     return {"texto": texto, "cumple": not problema, "problema": problema, "esquema": esquema}
 
 

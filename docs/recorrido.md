@@ -55,6 +55,12 @@ uv run python herramientas/generar_datos_clase.py
 
 Los porcentajes del clasificador de imágenes son ilustrativos.
 
+La última diapositiva (el modelo escribe la despedida, sin máscara y con máscara) usa sus propios datos, también reales: están en `clases/datos_cierre.js` y se regeneran con:
+
+```
+uv run python herramientas/generar_datos_cierre.py
+```
+
 ## Otras carpetas
 
 - `taller/`: código de apoyo para los scripts de `herramientas/`. Ningún ejercicio lo usa.

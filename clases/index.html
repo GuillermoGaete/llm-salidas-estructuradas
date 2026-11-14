@@ -568,9 +568,7 @@ uv run python 3_esquema.py
 </section>
 
 <!-- ====================== 06 KIOSCO ======================
-     La diapositiva del ejercicio 06 ya es la del programa nuevo (kiosco.py).
-     Las dos del cierre, que vienen después, son de la versión anterior:
-     «Lo que hicimos hoy» todavía usa la numeración vieja de los ejercicios. -->
+     La diapositiva del ejercicio 06 ya es la del programa nuevo (kiosco.py). -->
 <section class="ejercicio" data-background-color="#12303a">
   <h2><span class="numero">06</span> El tomador de pedidos</h2>
   <div class="cadena">
@@ -622,20 +620,24 @@ uv run python kiosco.py
     </div>
   </div>
   <p class="fragment">El modelo convierte texto en datos. <strong>Controlar los datos sigue siendo trabajo nuestro.</strong></p>
+  <aside class="notes">
+    Una sola idea: la máscara asegura la forma de la respuesta, no que lo que dice sea cierto.
+    Casos reales de las pruebas de los ejercicios. En el 04, con el formato de fecha salió 70/80/9000. En el 05, «me das media docena de medialunas?» dio cantidad 14. En el 06, la humita, que no está en el menú, se anotó como 2 empanadas de jamón y queso, y las 400 empanadas se cobraron $480.000.
+    Para decir en voz alta: el programa ya no se rompe al leer la respuesta. Lo que hace con esos datos lo seguimos controlando nosotros.
+  </aside>
 </section>
 
 <section>
-  <h2>Lo que hicimos hoy</h2>
-  <div class="resumen">
-    <div><span class="numero">01</span><p><strong>Clasificador</strong><br>entrada → puntajes → etiqueta</p></div>
-    <div><span class="numero">02</span><p><strong>LLM</strong><br>clasificar el próximo token, en loop</p></div>
-    <div><span class="numero">03</span><p><strong>Sorteo</strong><br>un dado cargado</p></div>
-    <div class="destacado"><span class="numero">04</span><p><strong>Máscara</strong><br>tapar caras antes de tirar</p></div>
-    <div><span class="numero">05·06</span><p><strong>Esquemas</strong><br>la misma máscara, más grande</p></div>
-  </div>
-  <blockquote>Un LLM es un clasificador que se usa en loop.<br>La salida estructurada es tapar opciones antes de elegir.</blockquote>
+  <h2>Y para terminar, que lo diga <span class="azul">el modelo</span></h2>
+  <!-- Los datos de esta diapositiva están en datos_cierre.js. -->
+  <div class="inferencia cierre" data-interactivo="cierre"></div>
   <aside class="notes">
-    Preguntar: ¿qué le contarías a alguien que no vino? Buscar que digan la frase con sus palabras.
+    Es la misma animación de «un token por vez». Se usa dos veces.
+    Primero sin máscara: apretar «Siguiente token» cinco veces. El modelo escribe «9200 euros». Es una corrida real de Qwen3.5-2B con temperatura 1.0, elegida entre 40 sorteos; casi todas empiezan con un número.
+    Después apretar «Ahora con máscara» y «Siguiente token» tres veces. En cada paso se ve primero lo que quiere el modelo y después cómo la máscara tapa lo que no sirve. Sale «Muchas gracias», en tres tokens: «Much», «as» y « gracias».
+    En el primer paso el modelo quiere un «1» (42%) y «Much» tiene 0,0%: con la máscara pasa a 99%. La máscara deja pasar 3 de los 248.320 tokens.
+    Es la máscara del ejercicio 04. Se puede repetir con mascara_v2.py, cambiando FORMATO por "Muchas gracias" y TEXTO por "Llegamos al final del taller. Solo me queda decirles:".
+    Con máscara, en cada paso sale el token más probable de los que pasan.
   </aside>
 </section>
 
@@ -643,6 +645,7 @@ uv run python kiosco.py
 </div>
 
 <script src="datos.js"></script>
+<script src="datos_cierre.js"></script>
 <script src="vendor/reveal.js"></script>
 <script src="vendor/plugin/highlight.js"></script>
 <script src="vendor/plugin/notes.js"></script>

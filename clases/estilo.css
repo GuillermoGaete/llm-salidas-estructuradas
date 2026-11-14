@@ -160,7 +160,7 @@
 .reveal .tarjeta h3 { font-size: 1.05em; }
 
 /* Resumen final */
-.reveal .resumen { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6em; font-size: 0.62em; margin-bottom: 1.2em; }
+.reveal .resumen { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6em; font-size: 0.62em; margin-bottom: 1.2em; }
 .reveal .resumen > div { background: var(--caja); border: 2px solid var(--borde); border-radius: 10px; padding: 0.7em; }
 .reveal .resumen > div.destacado { border-color: var(--amarillo); }
 .reveal .resumen .numero { color: var(--amarillo); font-weight: 700; font-size: 1.3em; }
@@ -347,6 +347,16 @@
 .reveal .vuelve { font-size: 0.5em; color: var(--gris); margin: 0; opacity: 0.25; transition: opacity 0.3s, color 0.3s; }
 .reveal .vuelve.activo { opacity: 1; color: var(--amarillo); }
 .reveal .entrada-loop .botonera { margin: 0; }
+
+/* Última diapositiva: el mismo loop dos veces, sin máscara y con máscara */
+.reveal .modo-cierre { font-size: 0.55em; font-weight: 700; color: var(--rojo); margin: 0; }
+.reveal .modo-cierre.con { color: var(--verde); }
+/* Lo que tenía que salir, en grande. Ocupa las dos columnas y aparece al final. */
+.reveal .gracias-final {
+  grid-column: 1 / -1; text-align: center; font-size: 2.3em; font-weight: 700; line-height: 1.1;
+  color: var(--amarillo); margin: 0.1em 0 0; opacity: 0; transition: opacity 0.9s ease;
+}
+.reveal .gracias-final.visible { opacity: 1; }
 
 /* Diapositiva «Pedir un formato no lo garantiza» */
 .reveal .pedido-al-modelo { font-size: 1.05em; color: var(--verde); margin: 0.1em 0 0.9em; }
