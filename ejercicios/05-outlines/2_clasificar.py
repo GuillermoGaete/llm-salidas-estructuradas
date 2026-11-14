@@ -31,7 +31,7 @@ ACCIONES = {
 }
 
 # El formato: la respuesta tiene que ser una de estas palabras, y ninguna otra.
-FORMATO = Choice(["reclamo", "consulta", "pedido", "saludo"])
+FORMATO = Choice(["queja","insatisfacción","reclamo", "consulta", "pedido", "saludo"])
 
 # Lo que le pedimos al modelo. Es lo mismo que en el ejercicio 03.
 INSTRUCCIONES = (

@@ -17,7 +17,7 @@ import random
 from llama_cpp import Llama
 
 VECES = 20          # cuántas veces hacerle la misma pregunta al modelo
-TEMPERATURA = 1.0   # 1.0: no cambia las probabilidades que da el modelo
+TEMPERATURA = 0.0   # 1.0: no cambia las probabilidades que da el modelo
 
 # Lo que el programa sabe hacer con cada tipo de mensaje.
 # Son las únicas cuatro respuestas que espera.
@@ -75,8 +75,6 @@ while mensaje != "chau":
 
         # 3. Sacar el texto que escribió el modelo.
         #    La respuesta trae varios datos más; el texto está en este lugar.
-        print(respuesta)
-        exit()
         categoria = respuesta["choices"][0]["message"]["content"]
 
         # 4. Comprobar lo que devolvió el modelo ANTES de usarlo.

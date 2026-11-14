@@ -26,16 +26,17 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+import numpy as np
 import outlines
-from llama_cpp import Llama
-from outlines.inputs import Chat
+from llama_cpp import Llama, LogitsProcessorList
 from outlines.types import Choice
 from pydantic import BaseModel, ValidationError
+from scipy.special import log_softmax
 
 from casos import ESTRUCTURADOS, SESGOS
 
 PUERTO = 8000
-ALTERNATIVAS = 5  # cuántas opciones mostrar para cada token, en la primera pestaña
+ALTERNATIVAS = 5  # cuántas opciones mostrar para cada token
 
 CARPETA = Path(__file__).resolve().parent  # la carpeta de este archivo
 MODELOS = CARPETA.parents[1] / "modelos"   # la carpeta modelos/, en la raíz del taller
@@ -172,6 +173,134 @@ def resumir(respuesta):
 
 
 # ---------------------------------------------------------------------------
+# Pestañas 2 y 3 — Una respuesta local, anotando las probabilidades de cada token
+# ---------------------------------------------------------------------------
+class Registro:
+    """Anota, en cada paso de una respuesta, las probabilidades de los tokens.
+
+    La librería lo llama una vez por paso, justo antes del sorteo, con los logits
+    que dio el modelo. Si hay una máscara, también la aplica acá: a los tokens que
+    no respetan el formato les deja el logit en menos infinito.
+    """
+
+    def __init__(self, mascara):
+        self.mascara = mascara  # la máscara que armó Outlines, o None si la respuesta es libre
+        self.pasos = []         # lo anotado: un elemento por cada token de la respuesta
+        self.pendiente = None   # el paso que se está sorteando: todavía no se sabe qué token salió
+
+    def __call__(self, leidos, logits):
+        # `leidos` son los tokens que el modelo leyó hasta ahora. El último es el que salió
+        # sorteado en el paso anterior: recién acá nos enteramos de cuál fue.
+        if self.pendiente is not None:
+            self.anotar(int(leidos[-1]))
+
+        # log_softmax: de logits a logprobs. El logprob es el logaritmo de la probabilidad.
+        sin_mascara = log_softmax(logits)
+        con_mascara = None
+        if self.mascara is not None:
+            logits = self.mascara(leidos, logits)
+            con_mascara = log_softmax(logits)
+        self.pendiente = (sin_mascara, con_mascara)
+        return logits  # la librería sortea con estos logits
+
+    def anotar(self, elegido):
+        """Guarda el paso pendiente, ahora que se sabe qué token salió."""
+        sin_mascara, con_mascara = self.pendiente
+        self.pendiente = None
+
+        # Los tokens para mostrar: los más probables sin la máscara, los más probables
+        # con la máscara, y el que salió (que puede no estar entre los más probables).
+        # np.argsort ordena del menos probable al más probable: [::-1] da vuelta la lista.
+        mostrar = list(np.argsort(sin_mascara)[::-1][:ALTERNATIVAS])
+        if con_mascara is not None:
+            for token in np.argsort(con_mascara)[::-1][:ALTERNATIVAS]:
+                # Si la máscara deja pasar pocos tokens, entre «los más probables» aparecen
+                # tokens tapados (logprob de menos infinito): esos no se agregan.
+                if not np.isneginf(con_mascara[token]):
+                    mostrar.append(token)
+        mostrar.append(elegido)
+
+        opciones = []
+        for token in dict.fromkeys(int(token) for token in mostrar):  # dict.fromkeys saca los repetidos
+            opcion = {"numero": token, "logprob": float(sin_mascara[token]), "salio": token == elegido}
+            if con_mascara is not None:
+                # Un token tapado por la máscara se anota con None.
+                tapado = np.isneginf(con_mascara[token])
+                opcion["logprob_con_mascara"] = None if tapado else float(con_mascara[token])
+            opciones.append(opcion)
+        self.pasos.append(opciones)
+
+
+def generar(llama, mensajes, mascara, temperatura, maximo):
+    """Le pide una respuesta a un modelo local y anota las probabilidades de cada token.
+
+    `mascara` es la máscara que armó Outlines, o None si la respuesta es libre.
+    Devuelve el texto y la lista de tokens, con la misma forma que usa la pestaña 1.
+    Hay que llamarla con el candado tomado.
+    """
+    registro = Registro(mascara)
+    respuesta = llama.create_chat_completion(
+        messages=mensajes,
+        # temperature: la que se eligió en la página (por defecto esta función usa 0.2).
+        temperature=temperatura,
+        # max_tokens: se pide un token de más. El registro se entera de qué token salió
+        #   recién en el paso siguiente; con uno de más, el último que nos interesa
+        #   también queda anotado. El token de más se descarta más abajo.
+        max_tokens=maximo + 1,
+        # Los tres valores que siguen apagan los recortes que la librería trae prendidos,
+        # igual que en el ejercicio 02. Así el sorteo usa las probabilidades que se muestran.
+        top_k=0,    # no descarta ningún token (por defecto se queda con los 40 mejores)
+        top_p=1.0,  # no descarta ningún token (por defecto es 0.95)
+        min_p=0.0,  # no descarta ningún token (por defecto es 0.05)
+        # logits_processor: lo que la librería llama en cada paso, antes del sorteo.
+        logits_processor=LogitsProcessorList([registro]),
+    )
+    # Borrar lo que el modelo leyó, como hace Outlines después de cada respuesta.
+    llama.reset()
+
+    texto = respuesta["choices"][0]["message"]["content"]
+    pasos = registro.pasos
+    if respuesta["usage"]["completion_tokens"] > maximo:
+        # La respuesta llegó al máximo: se saca el token de más y se arma el texto con los que quedan.
+        pasos = pasos[:maximo]
+        elegidos = [opcion["numero"] for paso in pasos for opcion in paso if opcion["salio"]]
+        texto = llama.detokenize(elegidos).decode("utf-8", errors="replace")
+
+    # Pasar cada paso a la forma que espera la página: el número de token se cambia por su texto.
+    tokens = []
+    for paso in pasos:
+        opciones = []
+        for opcion in paso:
+            # special=True: que las marcas especiales (como la de «terminé») se vean con su
+            #   nombre. Si no, se convierten en un texto vacío.
+            # errors="replace": algunos tokens son solo una parte de una letra o de un
+            #   emoji. En ese caso se muestra � en vez de dar un error.
+            pieza = llama.detokenize([opcion.pop("numero")], special=True).decode("utf-8", errors="replace")
+            # La librería devuelve un texto vacío para los tokens de más de 32 bytes (por
+            # ejemplo, 40 espacios seguidos). Esos no se muestran, salvo que sea el que salió.
+            if pieza == "" and not opcion["salio"]:
+                continue
+            opciones.append({"token": pieza, **opcion})
+        salio = next(opcion for opcion in opciones if opcion["salio"])
+        token = {"token": salio["token"], "logprob": salio["logprob"], "opciones": opciones}
+        if mascara is not None:
+            token["logprob_con_mascara"] = salio["logprob_con_mascara"]
+        tokens.append(token)
+    return texto, tokens
+
+
+def conversar_con_logprobs(pedido):
+    """Como conversar_con_openai, pidiendo además los logprobs.
+    Si el modelo no los da, repite el pedido sin pedirlos."""
+    try:
+        return conversar_con_openai(dict(pedido, logprobs=True, top_logprobs=ALTERNATIVAS))
+    except urllib.error.HTTPError as error:
+        if error.code != 400:
+            raise
+        return conversar_con_openai(pedido)
+
+
+# ---------------------------------------------------------------------------
 # Pestaña 2 — Salida estructurada
 # ---------------------------------------------------------------------------
 def modelo_de_pydantic(codigo):
@@ -226,13 +355,13 @@ def responder_con_formato(origen, nombre, prompt, codigo, maximo, temperatura, f
     if origen == "local":
         with candado:
             llama, con_outlines = modelo_local(nombre)
+            mascara = None
             if forzar:
                 # Outlines recibe el formato y arma la máscara, como en el ejercicio 05.
-                # temperature: por defecto esta función usa 0.2.
-                texto = con_outlines(Chat(mensajes), Formato, temperature=temperatura, max_tokens=maximo)
-            else:
-                respuesta = llama.create_chat_completion(messages=mensajes, temperature=temperatura, max_tokens=maximo)
-                texto = respuesta["choices"][0]["message"]["content"]
+                # En el ejercicio también hace la llamada al modelo; acá la hacemos nosotros
+                # (en `generar`), para poder anotar las probabilidades de cada token.
+                mascara = outlines.Generator(con_outlines, Formato).logits_processor
+            texto, tokens = generar(llama, mensajes, mascara, temperatura, maximo)
     else:
         pedido = {"model": nombre, "messages": mensajes, "max_completion_tokens": maximo, "temperature": temperatura}
         if forzar:
@@ -242,7 +371,9 @@ def responder_con_formato(origen, nombre, prompt, codigo, maximo, temperatura, f
                 "type": "json_schema",
                 "json_schema": {"name": Formato.__name__, "strict": True, "schema": esquema_estricto(esquema)},
             }
-        texto = conversar_con_openai(pedido)["choices"][0]["message"]["content"] or ""
+        respuesta = conversar_con_logprobs(pedido)
+        texto = respuesta["choices"][0]["message"]["content"] or ""
+        tokens = resumir(respuesta)["tokens"]
 
     # Comprobar la respuesta contra el modelo de Pydantic.
     try:
@@ -259,7 +390,7 @@ def responder_con_formato(origen, nombre, prompt, codigo, maximo, temperatura, f
                 lugar = ".".join(str(parte) for parte in uno["loc"])  # por ejemplo: items.0.cantidad
                 renglones.append(lugar + ": " + uno["msg"])
         problema = "\n".join(renglones)
-    return {"texto": texto, "cumple": not problema, "problema": problema, "esquema": esquema}
+    return {"texto": texto, "cumple": not problema, "problema": problema, "esquema": esquema, "tokens": tokens}
 
 
 # ---------------------------------------------------------------------------
@@ -270,10 +401,12 @@ def elegir(origen, nombre, prompt, opciones, temperatura):
     mensajes = [{"role": "user", "content": prompt}]
     if origen == "local":
         with candado:
-            _, con_outlines = modelo_local(nombre)
+            llama, con_outlines = modelo_local(nombre)
             # Choice: una lista cerrada. La máscara solo deja escribir una de las opciones.
-            # max_tokens=40: un tope, por si una opción es muy larga.
-            return {"respuesta": con_outlines(Chat(mensajes), Choice(opciones), temperature=temperatura, max_tokens=40)}
+            mascara = outlines.Generator(con_outlines, Choice(opciones)).logits_processor
+            # 40: un tope de tokens, por si una opción es muy larga.
+            texto, tokens = generar(llama, mensajes, mascara, temperatura, 40)
+        return {"respuesta": texto, "tokens": tokens}
     # En OpenAI, la lista cerrada es un JSON con un solo dato, que solo puede valer una de las opciones.
     esquema = {
         "type": "object",
@@ -281,7 +414,7 @@ def elegir(origen, nombre, prompt, opciones, temperatura):
         "required": ["respuesta"],
         "additionalProperties": False,
     }
-    respuesta = conversar_con_openai(
+    respuesta = conversar_con_logprobs(
         {
             "model": nombre,
             "messages": mensajes,
@@ -290,7 +423,8 @@ def elegir(origen, nombre, prompt, opciones, temperatura):
             "response_format": {"type": "json_schema", "json_schema": {"name": "eleccion", "strict": True, "schema": esquema}},
         }
     )
-    return {"respuesta": json.loads(respuesta["choices"][0]["message"]["content"])["respuesta"]}
+    elegida = json.loads(respuesta["choices"][0]["message"]["content"])["respuesta"]
+    return {"respuesta": elegida, "tokens": resumir(respuesta)["tokens"]}
 
 
 # ---------------------------------------------------------------------------

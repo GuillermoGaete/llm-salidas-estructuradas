@@ -63,6 +63,12 @@
     dialog .ayuda { margin-bottom: 14px; }
     dialog td.numero { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
     dialog .pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; }
+    dialog td small { display: block; color: var(--gris); font-size: 12px; }
+    .tapado { color: var(--gris); font-style: italic; }
+
+    /* Pestañas 2 y 3: la tabla de tokens de una respuesta */
+    .caja .tokens { max-width: 640px; }
+    .caja .tokens h3 { margin-top: 20px; }
 
     /* Pestaña 3: las barras de la cuenta */
     .cuenta { display: grid; gap: 8px; }
@@ -125,6 +131,7 @@
       <h3>Respuesta</h3>
       <p class="estado" id="e-estado">Elegí un caso o escribí el tuyo, y apretá «Enviar».</p>
       <pre id="e-respuesta"></pre>
+      <div class="tokens" id="e-tokens"></div>
       <details id="e-detalle" hidden>
         <summary>El formato que se le pasa al modelo (JSON Schema)</summary>
         <pre id="e-esquema"></pre>
@@ -163,6 +170,7 @@
       <p class="estado" id="s-estado">Elegí un caso y apretá «Correr».</p>
       <div class="cuenta" id="s-cuenta"></div>
       <p class="ayuda" id="s-ultimo"></p>
+      <div class="tokens" id="s-tokens"></div>
     </div>
   </section>
 
@@ -172,7 +180,8 @@
     <p class="ayuda" id="detalle-ayuda"></p>
     <table id="detalle-tabla"></table>
     <div class="pie">
-      <span class="ayuda">La probabilidad es <em>e</em> elevado al logprob. Un logprob de 0 es 100%: cuando aparece junto a otras opciones, es que el modelo redondeó, y lo que le falta para 100 es lo que suman las demás.</span>
+      <span class="ayuda" id="pie-simple">La probabilidad es <em>e</em> elevado al logprob. Un logprob de 0 es 100%: cuando aparece junto a otras opciones, es que el modelo redondeó, y lo que le falta para 100 es lo que suman las demás.</span>
+      <span class="ayuda" id="pie-mascara" hidden>La máscara tapa los tokens que no respetan el formato. Los que quedan se reparten el 100%, en la misma proporción que tenían, y el sorteo se hace entre ellos.</span>
       <button id="detalle-cerrar">Cerrar</button>
     </div>
   </dialog>
@@ -274,14 +283,33 @@
     }
 
     /** Arma la tabla de la respuesta: una fila por token, con su probabilidad en corto.
-        Al tocar una fila se abre el detalle de ese token. */
-    function mostrarTokens(lugar, tokens, modelo) {
+        Al tocar una fila se abre el detalle de ese token.
+        Si la respuesta se hizo con una máscara, cada token trae dos probabilidades:
+        la que le dio el modelo y la que le quedó después de la máscara.
+        `titulo` es opcional: lo usan las pestañas 2 y 3. */
+    function mostrarTokens(lugar, tokens, modelo, titulo) {
       lugar.textContent = "";
-      if (!tokens.length) return;
-      lugar.appendChild(crear("p", "ayuda", "Tocá un token para ver todas las opciones que había y sus logprobs."));
+      if (titulo) lugar.appendChild(crear("h3", "", titulo));
+      if (!tokens.length) {
+        if (titulo) lugar.appendChild(crear("p", "ayuda", "Este modelo no informó la probabilidad de cada token."));
+        return;
+      }
+      const conMascara = tokens.some((token) => token.logprob_con_mascara !== undefined);
+      lugar.appendChild(
+        crear(
+          "p",
+          "ayuda",
+          conMascara
+            ? "«Sin la máscara» es la probabilidad que el modelo le dio a ese token. «Con la máscara» es la que le quedó después de tapar los tokens que no respetan el formato. Tocá un token para ver las otras opciones."
+            : "Tocá un token para ver todas las opciones que había y sus logprobs."
+        )
+      );
       const tabla = crear("table");
       const titulos = crear("tr");
-      titulos.append(crear("th", "", "Token"), crear("th", "numero", "Probabilidad"), crear("th", "", ""));
+      titulos.appendChild(crear("th", "", "Token"));
+      if (conMascara) titulos.append(crear("th", "numero", "Sin la máscara"), crear("th", "numero", "Con la máscara"));
+      else titulos.appendChild(crear("th", "numero", "Probabilidad"));
+      titulos.appendChild(crear("th", "", ""));
       tabla.appendChild(titulos);
       tokens.forEach((token, posicion) => {
         const fila = crear("tr", "fila");
@@ -289,39 +317,60 @@
         salio.appendChild(crear("code", "", visible(token.token)));
         const ver = crear("td", "numero");
         ver.appendChild(crear("button", "ver", "Ver"));
-        fila.append(salio, crear("td", "numero", porcentaje(token.logprob)), ver);
+        fila.append(salio, crear("td", "numero", porcentaje(token.logprob)));
+        if (conMascara) fila.appendChild(crear("td", "numero", porcentaje(token.logprob_con_mascara)));
+        fila.appendChild(ver);
         fila.addEventListener("click", () => abrirDetalle(token, posicion + 1, tokens.length, modelo));
         tabla.appendChild(fila);
       });
       lugar.appendChild(tabla);
     }
 
+    /** Una celda del detalle con máscara: la probabilidad completa y, debajo, el logprob.
+        Un token tapado por la máscara no tiene logprob: llega como null. */
+    function celdaConLogprob(logprob) {
+      if (logprob === null) return crear("td", "numero tapado", "tapado");
+      // Un logprob de 0 exacto con la máscara puesta es 100%: era el único token que pasaba.
+      const celda = crear("td", "numero", logprob === 0 ? "100%" : porcentajeCompleto(logprob));
+      celda.appendChild(crear("small", "", "logprob " + completo(logprob, 8)));
+      return celda;
+    }
+
     /** Abre la ventana con todas las opciones que había para un token, con sus valores completos. */
     function abrirDetalle(token, posicion, total, modelo) {
+      const conMascara = token.logprob_con_mascara !== undefined;
+      // Cuál de las opciones es la que salió. Los modelos locales de las pestañas 2 y 3 lo
+      // marcan; en los demás se reconoce por el texto del token.
+      const esLaQueSalio = (opcion) => (opcion.salio !== undefined ? opcion.salio : opcion.token === token.token);
+
       elemento("detalle-titulo").textContent = "Token " + posicion + " de " + total;
       // Algunos modelos devuelven solo el token que salió, sin las otras opciones.
-      const otras = token.opciones.filter((opcion) => opcion.token !== token.token).length;
-      elemento("detalle-ayuda").textContent = otras
-        ? modelo + " · las opciones más probables que tenía en este lugar"
-        : modelo + " · este modelo no informó otras opciones para este token: solo devolvió el que salió";
+      const otras = token.opciones.filter((opcion) => !esLaQueSalio(opcion)).length;
+      if (conMascara) elemento("detalle-ayuda").textContent = modelo + " · lo que quería el modelo en este lugar, y lo que dejó pasar la máscara";
+      else if (otras) elemento("detalle-ayuda").textContent = modelo + " · las opciones más probables que tenía en este lugar";
+      else elemento("detalle-ayuda").textContent = modelo + " · este modelo no informó otras opciones para este token: solo devolvió el que salió";
+      elemento("pie-simple").hidden = conMascara;
+      elemento("pie-mascara").hidden = !conMascara;
 
       // Las opciones, de la más probable a la menos probable. Si el token que salió
       // no está entre ellas (pasa con temperatura alta), se agrega.
       const opciones = token.opciones.slice();
-      if (!opciones.some((opcion) => opcion.token === token.token)) opciones.push({ token: token.token, logprob: token.logprob });
+      if (!opciones.some(esLaQueSalio)) opciones.push({ token: token.token, logprob: token.logprob });
       opciones.sort((a, b) => b.logprob - a.logprob);
 
       const tabla = elemento("detalle-tabla");
       tabla.textContent = "";
       const titulos = crear("tr");
-      titulos.append(crear("th", "", "Opción"), crear("th", "numero", "Probabilidad"), crear("th", "numero", "Logprob"));
+      if (conMascara) titulos.append(crear("th", "", "Opción"), crear("th", "numero", "Sin la máscara"), crear("th", "numero", "Con la máscara"));
+      else titulos.append(crear("th", "", "Opción"), crear("th", "numero", "Probabilidad"), crear("th", "numero", "Logprob"));
       tabla.appendChild(titulos);
       opciones.forEach((opcion) => {
         const fila = crear("tr");
-        const nombre = crear("td", opcion.token === token.token ? "salio" : "");
+        const nombre = crear("td", esLaQueSalio(opcion) ? "salio" : "");
         nombre.appendChild(crear("code", "", visible(opcion.token)));
-        if (opcion.token === token.token) nombre.append(" ← salió");
-        fila.append(nombre, crear("td", "numero", porcentajeCompleto(opcion.logprob)), crear("td", "numero", completo(opcion.logprob, 8)));
+        if (esLaQueSalio(opcion)) nombre.append(" ← salió");
+        if (conMascara) fila.append(nombre, celdaConLogprob(opcion.logprob), celdaConLogprob(opcion.logprob_con_mascara));
+        else fila.append(nombre, crear("td", "numero", porcentajeCompleto(opcion.logprob)), crear("td", "numero", completo(opcion.logprob, 8)));
         tabla.appendChild(fila);
       });
       detalle.showModal();
@@ -382,11 +431,13 @@
       estado.className = "estado";
       estado.textContent = "Pensando…";
       elemento("e-respuesta").textContent = "";
+      elemento("e-tokens").textContent = "";
       elemento("e-detalle").hidden = true;
+      const elegido = modeloElegido(elemento("e-modelo"));
       const inicio = Date.now();
       try {
         const respuesta = await pedir("/estructurada", {
-          ...modeloElegido(elemento("e-modelo")),
+          ...elegido,
           prompt: elemento("e-prompt").value,
           codigo: elemento("e-codigo").value,
           maximo: Number(elemento("e-maximo").value),
@@ -409,6 +460,7 @@
         } catch {}
         elemento("e-respuesta").textContent = texto;
         if (!respuesta.cumple) elemento("e-respuesta").textContent += "\n\n— Por qué no cumple —\n" + respuesta.problema;
+        mostrarTokens(elemento("e-tokens"), respuesta.tokens || [], elegido.modelo, "La respuesta, token por token");
         elemento("e-esquema").textContent = JSON.stringify(respuesta.esquema, null, 2);
         elemento("e-detalle").hidden = false;
       } catch (error) {
@@ -469,6 +521,7 @@
         // Se borra la cuenta de la corrida anterior, para que no parezca el resultado de esta.
         elemento("s-cuenta").textContent = "";
         elemento("s-ultimo").textContent = "";
+        elemento("s-tokens").textContent = "";
         return;
       }
       const cuenta = Object.fromEntries(opciones.map((opcion) => [opcion, 0]));
@@ -478,6 +531,8 @@
       elemento("s-detener").disabled = false;
       estado.className = "estado";
       mostrarCuenta(opciones, cuenta, 0);
+      elemento("s-ultimo").textContent = "";
+      elemento("s-tokens").textContent = "";
       const inicio = Date.now();
       let hechas = 0;
       try {
@@ -494,6 +549,7 @@
           hechas++;
           mostrarCuenta(opciones, cuenta, hechas);
           elemento("s-ultimo").textContent = "Última pregunta enviada: " + prompt;
+          mostrarTokens(elemento("s-tokens"), respuesta.tokens || [], elegido.modelo, "La última respuesta, token por token");
         }
         estado.textContent = hechas + " respuestas de " + elegido.modelo + " en " + ((Date.now() - inicio) / 1000).toFixed(1) + " s" + (corriendo ? "" : " (detenido)");
       } catch (error) {

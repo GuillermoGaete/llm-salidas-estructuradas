@@ -19,7 +19,7 @@ Qué hacer:       escribí el pedido de un cliente y mirá el resultado. Probá 
 
 import json
 import random
-from typing import Literal
+from typing import Literal, Optional
 
 import outlines
 from llama_cpp import Llama
@@ -49,10 +49,18 @@ class Item(BaseModel):
 
 class Pedido(BaseModel):
     items: list[Item]   # una lista de items
+    para_llevar: bool   # verdadero o falso
+    forma_de_pago: Literal["efectivo", "tarjeta"]   # solo puede ser efectivo o tarjeta
+
+
+class Respuesta(BaseModel):
+    pedido: Optional[Pedido]
+    mensaje_para_el_cliente: str   # un texto que el modelo puede escribir para el cliente
+
 
 # Lo que le pedimos al modelo. El menú se arma con los nombres de PRECIOS.
 INSTRUCCIONES = (
-    "Sos el asistente de un kiosco. Extraé el pedido del mensaje del cliente. "
+    "Sos el asistente de un kiosco. Extraé el pedido del mensaje del cliente. Si el pedido esta imcompleto, pedile al cliente que lo complete. Si el pedido esta completo, decile al cliente el total a pagar y genera el pedido "
     "Menú: " + ", ".join(PRECIOS) + ". Incluí solo lo que el cliente pidió."
 )
 
@@ -76,7 +84,7 @@ while mensaje != "chau":
             {"role": "system", "content": INSTRUCCIONES},
             {"role": "user", "content": mensaje},
         ]),
-        Pedido,
+        Respuesta,
         temperature=TEMPERATURA,
     )
 
