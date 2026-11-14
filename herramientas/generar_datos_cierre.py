@@ -1,17 +1,21 @@
 """Genera clases/datos_cierre.js: los datos de la última diapositiva.
 
-En esa diapositiva el modelo continúa un texto de despedida dos veces:
+En esa diapositiva se le pide al modelo «Agradece al público presente», y el
+modelo responde dos veces, de a una palabra por paso:
 
-  1. Sin máscara. Es lo que salió en un sorteo real, guardado en SIN_MASCARA.
+  1. Sin máscara. Es lo que salió en un sorteo real (ver SEMILLA_SIN_MASCARA).
   2. Con la máscara del ejercicio 04 (mascara_v2.py), con FORMATO = "Muchas gracias".
 
-En cada paso se guardan las probabilidades reales del modelo, para que la
-diapositiva las muestre sin tener que cargar el modelo.
+El modelo no elige palabras sino tokens. Para que la diapositiva se pueda leer
+con palabras, cada token candidato se completa hasta terminar la palabra, igual
+que en la primera diapositiva del LLM. La probabilidad que se muestra es la del
+token real con el que empieza la palabra.
 
 Cómo correrlo (desde la raíz del taller):   uv run python herramientas/generar_datos_cierre.py
 """
 
 import json
+import random
 from pathlib import Path
 
 import numpy as np
@@ -21,103 +25,166 @@ from scipy.special import softmax
 RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "clases" / "datos_cierre.js"
 
-# Lo que lee el modelo antes de escribir. Se le agrega un espacio, como en el ejercicio 04.
-TEXTO = "Llegamos al final del taller. Solo me queda decirles:"
+# Lo que se le pide al modelo.
+ENTRADA = "Agradece al público presente"
 
-# Lo que escribió el modelo al sortear sin máscara, token por token (temperatura 1.0).
-# Se eligió entre 40 sorteos, y se guarda acá para que la diapositiva muestre siempre lo mismo.
-SIN_MASCARA = ["9", "2", "0", "0", " euros"]
+# La respuesta sin máscara sale de un sorteo con temperatura 1.0. Con esta semilla el
+# modelo responde «Obrigado(a)!». Se eligió entre 40 sorteos; otros empiezan con
+# «Como modelo de lenguaje, no puedo…» (semilla 0) o «Claro que sí. Aquí tienes…» (semilla 11).
+SEMILLA_SIN_MASCARA = 1
+PALABRAS_SIN_MASCARA = 1  # cuántas palabras de esa respuesta se muestran
 
 # Lo que tiene que salir con la máscara. No tiene ni «L» ni «D», así que en el
 # formato del ejercicio 04 cada carácter es un símbolo exacto.
 FORMATO = "Muchas gracias"
 
-FILAS = 5  # cuántos tokens se muestran en cada paso, además de «el resto»
+FILAS = 5   # cuántas palabras se muestran en cada paso, además de «el resto»
+MIRAR = 12  # cuántos tokens candidatos se completan hasta formar una palabra
 
-# verbose=False: que la librería no llene la pantalla con sus mensajes internos.
 # logits_all=True: que la librería guarde los logits después de leer.
+# verbose=False: que la librería no llene la pantalla con sus mensajes internos.
 modelo = Llama(str(RAIZ / "modelos" / "Qwen3.5-2B-Q4_K_M.gguf"), logits_all=True, verbose=False)
 
 # El texto que escribe cada token del vocabulario.
 PIEZAS = [modelo.detokenize([token]).decode(errors="replace") for token in range(modelo.n_vocab())]
 
+# La entrada, escrita como una conversación: es el mismo texto que arma la librería
+# en el ejercicio 03. special=True: que las marcas se lean como tokens especiales.
+BASE = modelo.tokenize(
+    ("<|im_start|>user\n" + ENTRADA + "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n").encode(),
+    special=True,
+)
 
-def leer_texto():
-    """Borra lo anterior y hace que el modelo lea el texto de despedida."""
+
+def leer(respuesta):
+    """Borra lo anterior y hace que el modelo lea la entrada y lo que ya respondió."""
     modelo.reset()
-    modelo.eval(modelo.tokenize((TEXTO + " ").encode()))
+    modelo.eval(BASE + respuesta)
 
 
-def mas_probables(probabilidades, cuantos):
-    """Los números de los tokens más probables, del más probable al menos probable."""
-    return [int(token) for token in np.argsort(probabilidades)[::-1][:cuantos]]
+def probabilidades():
+    """Las probabilidades del próximo token, tal como las da el modelo."""
+    return softmax(modelo.scores[modelo.n_tokens - 1])
+
+
+def empieza_otra_palabra(token):
+    """Verdadero si con este token empieza una palabra nueva, o si la respuesta terminó."""
+    pieza = PIEZAS[token]
+    return token == modelo.token_eos() or pieza == "" or pieza[0] in " \n"
+
+
+def palabras_candidatas(respuesta):
+    """Las palabras que el modelo prefiere para seguir, de la más probable a la menos probable.
+
+    Cada token candidato se completa hasta terminar la palabra, siguiendo siempre
+    con el token más probable. Si dos tokens llevan a la misma palabra, se suman.
+    """
+    leer(respuesta)
+    p = probabilidades()
+    suma = {}
+    for token in np.argsort(p)[::-1][:MIRAR]:
+        token = int(token)
+        leer(respuesta + [token])
+        piezas = [PIEZAS[token]]
+        for _ in range(8):
+            siguiente = int(np.argmax(modelo.scores[modelo.n_tokens - 1]))
+            if empieza_otra_palabra(siguiente):
+                break
+            piezas.append(PIEZAS[siguiente])
+            modelo.eval([siguiente])
+        palabra = "".join(piezas).strip()
+        if palabra != "":
+            suma[palabra] = suma.get(palabra, 0) + float(p[token])
+    return sorted(suma.items(), key=lambda par: -par[1])
+
+
+def armar_filas(candidatas, palabra, p_palabra):
+    """Las filas de un paso: las palabras favoritas del modelo, con la que salió incluida."""
+    filas = dict(candidatas[:FILAS])
+    if palabra not in filas:
+        # La palabra que salió no está entre las favoritas: entra en lugar de la última.
+        filas = dict(candidatas[: FILAS - 1])
+        filas[palabra] = p_palabra
+    ordenadas = sorted(filas.items(), key=lambda par: -par[1])
+    return [{"palabra": nombre, "p": round(p, 4)} for nombre, p in ordenadas]
 
 
 # ---------------------------------------------------------------- sin máscara
-leer_texto()
+azar = random.Random(SEMILLA_SIN_MASCARA)
+respuesta = []       # los tokens que ya salieron
+pendiente = None     # el token con el que empieza la palabra siguiente, si ya se sorteó
 pasos_sin_mascara = []
-for pieza in SIN_MASCARA:
-    probabilidades = softmax(modelo.scores[modelo.n_tokens - 1])
-    elegido = PIEZAS.index(pieza)
+for numero in range(PALABRAS_SIN_MASCARA):
+    candidatas = palabras_candidatas(respuesta)
+    leer(respuesta)
+    p = probabilidades()
+    primero = pendiente if pendiente is not None else azar.choices(range(len(PIEZAS)), weights=p)[0]
+    if primero == modelo.token_eos():
+        break
+    tokens = [primero]
+    modelo.eval([primero])
+    # Se sigue sorteando hasta que salga un token que empieza otra palabra.
+    while True:
+        siguiente = azar.choices(range(len(PIEZAS)), weights=probabilidades())[0]
+        if empieza_otra_palabra(siguiente):
+            pendiente = siguiente
+            break
+        tokens.append(siguiente)
+        modelo.eval([siguiente])
+    palabra = "".join(PIEZAS[token] for token in tokens).strip()
     pasos_sin_mascara.append(
         {
-            "elegido": pieza,
-            "p_elegido": round(float(probabilidades[elegido]), 4),
-            "filas": [
-                {"pieza": PIEZAS[token], "p": round(float(probabilidades[token]), 4)}
-                for token in mas_probables(probabilidades, FILAS)
-            ],
+            "elegida": palabra,
+            "tokens": [PIEZAS[token] for token in tokens],
+            "filas": armar_filas(candidatas, palabra, float(p[primero])),
         }
     )
-    modelo.eval([elegido])
+    respuesta = respuesta + tokens
 
 # ---------------------------------------------------------------- con máscara
-leer_texto()
-pasos_con_mascara = []
+respuesta = []
 escrito = ""
-while len(escrito) < len(FORMATO):
-    logits = modelo.scores[modelo.n_tokens - 1]
-
-    # La máscara: un token sirve si, agregado a lo escrito, sigue siendo el comienzo del formato.
-    mascara = [pieza != "" and FORMATO.startswith(escrito + pieza) for pieza in PIEZAS]
-    sin_mascara = softmax(logits)
-    con_mascara = softmax(np.where(mascara, logits, -np.inf))
-
-    # Sale el token más probable de los que deja pasar la máscara.
-    elegido = int(np.argmax(con_mascara))
-
-    # Las filas que se muestran: los tres favoritos del modelo y los dos mejores
-    # de los que pasan la máscara. Si se repiten, se completa con más favoritos.
-    filas = []
-    candidatos = mas_probables(sin_mascara, 3) + mas_probables(con_mascara, 2) + mas_probables(sin_mascara, FILAS + 2)
-    for token in candidatos:
-        if token not in filas and len(filas) < FILAS:
-            # Un token que la máscara tapó no entra como «uno de los que pasan».
-            filas.append(token)
-    # Se ordenan como las ve el modelo: de la más probable a la menos probable, sin máscara.
-    filas.sort(key=lambda token: -sin_mascara[token])
-
+objetivo = ""
+pasos_con_mascara = []
+for palabra in FORMATO.split(" "):
+    # Lo que tiene que quedar escrito cuando termine este paso.
+    objetivo = palabra if objetivo == "" else objetivo + " " + palabra
+    candidatas = palabras_candidatas(respuesta)
+    leer(respuesta)
+    tokens = []
+    p_antes = None
+    pasan = None
+    # Se escribe la palabra token por token, con la máscara del ejercicio 04:
+    # un token sirve si, agregado a lo escrito, sigue siendo el comienzo de lo que tiene que quedar.
+    while escrito != objetivo:
+        logits = modelo.scores[modelo.n_tokens - 1]
+        mascara = np.array([pieza != "" and objetivo.startswith(escrito + pieza) for pieza in PIEZAS])
+        sin_mascara = softmax(logits)
+        con_mascara = softmax(np.where(mascara, logits, -np.inf))
+        if p_antes is None:
+            # Antes de la máscara: lo que suman los tokens con los que puede empezar esta palabra.
+            p_antes = float(sin_mascara[mascara].sum())
+            pasan = int(mascara.sum())
+        elegido = int(np.argmax(con_mascara))  # sale el más probable de los que pasan
+        tokens.append(elegido)
+        escrito = escrito + PIEZAS[elegido]
+        modelo.eval([elegido])
+    filas = armar_filas(candidatas, palabra, p_antes)
+    for fila in filas:
+        fila["pasa"] = fila["palabra"] == palabra
     pasos_con_mascara.append(
         {
-            "elegido": PIEZAS[elegido],
-            "pasan": int(sum(mascara)),
-            "filas": [
-                {
-                    "pieza": PIEZAS[token],
-                    "p": round(float(sin_mascara[token]), 4),
-                    "pasa": bool(mascara[token]),
-                    "con": round(float(con_mascara[token]), 4),
-                }
-                for token in filas
-            ],
+            "elegida": palabra,
+            "tokens": [PIEZAS[token] for token in tokens],
+            "pasan": pasan,
+            "filas": filas,
         }
     )
-    escrito = escrito + PIEZAS[elegido]
-    modelo.eval([elegido])
+    respuesta = respuesta + tokens
 
 datos = {
     "modelo": "Qwen3.5-2B",
-    "texto": TEXTO + " ",
+    "entrada": ENTRADA,
     "vocabulario": modelo.n_vocab(),
     "formato": FORMATO,
     "sin_mascara": pasos_sin_mascara,
@@ -130,9 +197,10 @@ DESTINO.write_text(
 )
 
 print(f"Guardado {DESTINO.relative_to(RAIZ)}")
-print("Sin máscara:", TEXTO, "".join(paso["elegido"] for paso in pasos_sin_mascara))
+print("Entrada:", ENTRADA)
+print("Sin máscara:", " ".join(paso["elegida"] for paso in pasos_sin_mascara))
 for paso in pasos_sin_mascara:
-    print("   ", repr(paso["elegido"]), paso["p_elegido"], "| favoritos:", [(f["pieza"], f["p"]) for f in paso["filas"]])
-print("Con máscara:", TEXTO, escrito)
+    print("   ", repr(paso["elegida"]), paso["tokens"], "|", [(f["palabra"], f["p"]) for f in paso["filas"]])
+print("Con máscara:", escrito)
 for paso in pasos_con_mascara:
-    print("   ", repr(paso["elegido"]), "| pasan", paso["pasan"], "|", [(f["pieza"], f["p"], f["con"] if f["pasa"] else "tapado") for f in paso["filas"]])
+    print("   ", repr(paso["elegida"]), paso["tokens"], "| tokens que pasan:", paso["pasan"], "|", [(f["palabra"], f["p"], "pasa" if f["pasa"] else "tapada") for f in paso["filas"]])

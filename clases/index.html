@@ -632,12 +632,12 @@ uv run python kiosco.py
   <!-- Los datos de esta diapositiva están en datos_cierre.js. -->
   <div class="inferencia cierre" data-interactivo="cierre"></div>
   <aside class="notes">
-    Es la misma animación de «un token por vez». Se usa dos veces.
-    Primero sin máscara: apretar «Siguiente token» cinco veces. El modelo escribe «9200 euros». Es una corrida real de Qwen3.5-2B con temperatura 1.0, elegida entre 40 sorteos; casi todas empiezan con un número.
-    Después apretar «Ahora con máscara» y «Siguiente token» tres veces. En cada paso se ve primero lo que quiere el modelo y después cómo la máscara tapa lo que no sirve. Sale «Muchas gracias», en tres tokens: «Much», «as» y « gracias».
-    En el primer paso el modelo quiere un «1» (42%) y «Much» tiene 0,0%: con la máscara pasa a 99%. La máscara deja pasar 3 de los 248.320 tokens.
-    Es la máscara del ejercicio 04. Se puede repetir con mascara_v2.py, cambiando FORMATO por "Muchas gracias" y TEXTO por "Llegamos al final del taller. Solo me queda decirles:".
-    Con máscara, en cada paso sale el token más probable de los que pasan.
+    Es la misma animación de la inferencia, de a una palabra por clic. Se le pide al modelo: «Agradece al público presente».
+    Primero sin máscara: un clic en «Siguiente palabra». El modelo responde «Obrigado(a)!», en portugués. Es una respuesta real de Qwen3.5-2B con temperatura 1.0, elegida entre 40 sorteos. Otras empezaban con «Como modelo de lenguaje, no puedo…» o «Claro que sí. Aquí tienes varios ejemplos».
+    Después «Ahora con máscara» y dos clics. En cada paso se ve primero lo que quiere el modelo y después cómo la máscara tapa lo que no sirve. Sale «Muchas gracias».
+    En el primer paso el modelo prefiere «Claro,» (13%) y «Muchas» tiene menos de 1%: con la máscara es lo único que puede salir. En el segundo, «gracias» ya era la favorita (93%).
+    El modelo elige tokens, no palabras. Acá cada candidato se completó hasta formar la palabra, como en la primera diapositiva del LLM; el porcentaje es el del token con el que empieza.
+    Es la máscara del ejercicio 04 con FORMATO = "Muchas gracias".
   </aside>
 </section>
 

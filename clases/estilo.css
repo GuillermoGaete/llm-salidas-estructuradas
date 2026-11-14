@@ -357,6 +357,10 @@
   color: var(--amarillo); margin: 0.1em 0 0; opacity: 0; transition: opacity 0.9s ease;
 }
 .reveal .gracias-final.visible { opacity: 1; }
+/* Acá las barras son de palabras enteras, que son más largas que un token:
+   van con la letra común y con más lugar para el nombre. */
+.reveal .inferencia.cierre .barra { grid-template-columns: 7.6em 1fr 3.6em; }
+.reveal .inferencia.cierre .barra .nombre { font-family: inherit; }
 
 /* Diapositiva «Pedir un formato no lo garantiza» */
 .reveal .pedido-al-modelo { font-size: 1.05em; color: var(--verde); margin: 0.1em 0 0.9em; }

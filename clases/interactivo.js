@@ -742,29 +742,30 @@
 
   // ---------------------------------------------------------- 5. el cierre
 
-  /** La última diapositiva. El modelo continúa un texto de despedida dos veces, con la
-      misma animación del loop: primero sin máscara (sale cualquier cosa) y después con
-      la máscara del ejercicio 04 (sale «Muchas gracias»). Los datos son reales y están
-      en datos_cierre.js, que se genera con herramientas/generar_datos_cierre.py. */
+  /** La última diapositiva. Se le pide al modelo que agradezca, y responde dos veces con
+      la misma animación del loop, de a una palabra por paso: primero sin máscara (no sale
+      lo que queríamos) y después con la máscara del ejercicio 04 (sale «Muchas gracias»).
+      Los datos son reales y están en datos_cierre.js, que se genera con
+      herramientas/generar_datos_cierre.py. */
   function armarCierre(raiz) {
     const cierre = window.DATOS_CIERRE;
-    const FILAS = 6; // cinco tokens y «el resto»
-    const ESPERA = 1100; // milisegundos entre mostrar lo que quiere el modelo y aplicar la máscara
+    const FILAS = 6; // cinco palabras y «el resto»
+    const ESPERA = 800; // milisegundos entre mostrar lo que quiere el modelo y aplicar la máscara
+    const AGREGAR = 500; // milisegundos entre que sale una palabra y se agrega a la respuesta
 
-    // A la izquierda: el texto que entra a la red, que crece de a un token.
+    // A la izquierda: lo que se le pide al modelo y, abajo, lo que va respondiendo.
     const izquierda = crear("div", "entrada-loop");
     const texto = crear("div", "caja texto-loop");
-    const fijo = crear("span", "", cierre.texto);
     const escrito = crear("span", "azul");
-    texto.append(fijo, escrito);
+    texto.append(crear("span", "", cierre.entrada + "\n\n"), escrito);
     const cartel = crear("p", "modo-cierre");
     const botones = crear("div", "botonera");
-    const siguiente = crear("button", "boton fuerte", "Siguiente token ▸");
+    const siguiente = crear("button", "boton fuerte", "Siguiente palabra ▸");
     const cambiar = crear("button", "boton");
     botones.append(siguiente, cambiar);
     izquierda.append(texto, cartel, botones);
 
-    // A la derecha: la misma red de las otras diapositivas, y las barras del próximo token.
+    // A la derecha: la misma red de las otras diapositivas, y las barras de la próxima palabra.
     const salida = crear("div", "salida-red");
     const titulo = crear("p", "titulo-red");
     const red = armarRed(FILAS, true);
@@ -806,7 +807,7 @@
       cartel.classList.toggle("con", conMascara);
       cambiar.textContent = conMascara ? "Otra vez sin máscara" : "Ahora con máscara";
       if (paso < total) {
-        titulo.textContent = "Paso " + (paso + 1) + " de " + total + ": ¿qué token sigue?";
+        titulo.textContent = "Paso " + (paso + 1) + " de " + total + ": ¿qué palabra sigue?";
         respuesta.innerHTML = 'Salió: <span class="gris">…</span>';
       }
       siguiente.disabled = paso >= total;
@@ -819,24 +820,24 @@
         titulo.textContent = "Con máscara: salió lo que tenía que salir";
         gracias.classList.add("visible");
       } else {
-        titulo.textContent = "Sin máscara: salió cualquier cosa 😢";
+        titulo.textContent = "Sin máscara: no salió lo que queríamos 😢";
         // El botón de la máscara pasa a ser el que hay que apretar.
         cambiar.classList.add("fuerte");
       }
     }
 
-    /** Agrega al texto el token que salió y pasa al paso siguiente. */
+    /** Agrega a la respuesta la palabra que salió y pasa al paso siguiente. */
     function agregar(actual, mia) {
       respuesta.innerHTML = "Salió: <strong></strong>";
-      respuesta.querySelector("strong").textContent = visible(actual.elegido);
+      respuesta.querySelector("strong").textContent = actual.elegida;
       setTimeout(() => {
         if (mia !== corrida) return;
-        escrito.appendChild(crear("span", "token-nuevo", actual.elegido));
+        escrito.appendChild(crear("span", "token-nuevo", (paso > 0 ? " " : "") + actual.elegida));
         paso++;
         ocupado = false;
         siguiente.disabled = paso >= pasos().length;
         if (paso >= pasos().length) terminar();
-      }, 700);
+      }, AGREGAR);
     }
 
     siguiente.addEventListener("click", () => {
@@ -849,20 +850,20 @@
       const p = mostradas.map((fila) => fila.p);
       p.push(Math.max(0, 1 - p.reduce((suma, valor) => suma + valor, 0)));
       // Cuál salió. Si no está entre las filas, se marca «el resto».
-      let elegida = mostradas.findIndex((fila) => fila.pieza === actual.elegido);
+      let elegida = mostradas.findIndex((fila) => fila.palabra === actual.elegida);
       if (elegida < 0) elegida = FILAS - 1;
       const azar = generador(300 + paso); // cada paso enciende distinto las neuronas de entrada
       const entrada = [azar(), azar(), azar(), azar()].map((valor) => 0.15 + 0.8 * valor);
 
       vaciar();
-      // 1. El texto entra a la red y la señal la recorre.
+      // 1. La entrada pasa por la red y la señal la recorre.
       //    Con máscara todavía no se marca ninguna neurona: falta tapar.
       red.animar({ entrada, p, ganadora: conMascara ? -1 : elegida }, () => {
         if (mia !== corrida) return;
         // 2. Salen las probabilidades que da el modelo.
         filas.forEach((fila, i) => {
           const esResto = i === FILAS - 1;
-          fila.etiqueta.textContent = esResto ? "el resto" : visible(mostradas[i].pieza);
+          fila.etiqueta.textContent = esResto ? "el resto" : mostradas[i].palabra;
           fila.relleno.style.width = p[i] * 100 + "%";
           fila.valor.textContent = porcentaje(p[i]);
           fila.fila.classList.toggle("viva", !conMascara && i === elegida);
@@ -873,22 +874,19 @@
           return;
         }
 
-        // 3. Con máscara: un momento después se tapan los tokens que no sirven,
-        //    y las probabilidades se reparten entre los que quedan.
+        // 3. Con máscara: un momento después se tapan las palabras que no sirven,
+        //    y toda la probabilidad queda en la única que pasa.
         titulo.textContent = "Paso " + (paso + 1) + " de " + pasos().length + ": esto quiere el modelo…";
         setTimeout(() => {
           if (mia !== corrida) return;
-          const con = mostradas.map((fila) => (fila.pasa ? fila.con : 0));
-          con.push(Math.max(0, 1 - con.reduce((suma, valor) => suma + valor, 0)));
           filas.forEach((fila, i) => {
-            const esResto = i === FILAS - 1;
-            const pasa = !esResto && mostradas[i].pasa;
+            const pasa = i < FILAS - 1 && mostradas[i].pasa;
             fila.fila.classList.toggle("tapada", !pasa);
-            fila.fila.classList.toggle("viva", i === elegida);
-            fila.relleno.style.width = con[i] * 100 + "%";
-            fila.valor.textContent = porcentaje(con[i]);
+            fila.fila.classList.toggle("viva", pasa);
+            fila.relleno.style.width = pasa ? "100%" : "0%";
+            fila.valor.textContent = porcentaje(pasa ? 1 : 0);
           });
-          titulo.textContent = "La máscara deja pasar " + actual.pasan + " de " + miles(cierre.vocabulario) + " tokens";
+          titulo.textContent = "La máscara solo deja pasar «" + actual.elegida + "»";
           agregar(actual, mia);
         }, ESPERA);
       });
