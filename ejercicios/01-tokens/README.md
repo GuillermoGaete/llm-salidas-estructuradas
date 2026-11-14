@@ -23,14 +23,3 @@ El programa tiene cuatro pasos: carga el modelo, convierte el texto en tokens (`
 3. La misma palabra con minúscula y con mayúscula: `hola`, `Hola`.
 4. Un emoji, o una palabra con `ñ`. Si aparece `�`, ese token es solo una parte de un carácter.
 5. Una frase en inglés y la misma frase en español. ¿Cuál usa menos tokens?
-
-## Para pensar entre todos
-
-- ¿Los tokens son palabras? ¿Son letras? ¿Son sílabas?
-- ¿Qué palabras quedan enteras y cuáles se parten? ¿Por qué será?
-- ¿Dónde queda el espacio que separa dos palabras?
-- El vocabulario tiene 151.936 tokens. ¿Se puede escribir una palabra que el modelo nunca vio?
-
-## La idea que nos llevamos
-
-El modelo trabaja con **números de token**, no con texto. El vocabulario es fijo: cualquier texto se arma combinando esos pedacitos.

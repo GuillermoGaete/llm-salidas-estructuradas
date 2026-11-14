@@ -57,12 +57,3 @@ Escribe un texto token por token. En cada paso muestra los tres favoritos del mo
 
 - Escribí tres veces el mismo comienzo. ¿Sale el mismo texto?
 - ¿El token que sale es siempre el favorito?
-
-## Para pensar entre todos
-
-- ¿Por qué la misma pregunta a un chat da respuestas distintas cada vez?
-- Un token con probabilidad muy baja, ¿puede salir? ¿Y uno con probabilidad cero?
-
-## La idea que nos llevamos
-
-El modelo no «escribe»: puntúa todos los tokens, **sortea** uno y repite. Lo que tiene probabilidad baja puede salir igual; lo que tiene probabilidad cero, nunca.
