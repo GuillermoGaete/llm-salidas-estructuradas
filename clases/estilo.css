@@ -119,6 +119,14 @@
 .reveal .barra.tapada .nombre { text-decoration: line-through; color: var(--rojo); }
 .reveal .barra.viva .pista i { background: var(--amarillo); }
 .reveal .barra.viva .valor { color: var(--amarillo); }
+/* Respuestas enteras del modelo (ejercicio 03): en rojo, las que el programa no esperaba */
+.reveal .barras.respuestas .barra { grid-template-columns: 6.5em 1fr 2em; }
+.reveal .barra.rara .nombre, .reveal .barra.rara .valor { color: var(--rojo); }
+.reveal .barra.rara .pista i { background: var(--rojo); }
+
+/* Lo que el programa hace con cada respuesta esperada */
+.reveal .acciones { display: grid; grid-template-columns: auto 1fr; gap: 0.45em 0.9em; align-items: baseline; font-size: 0.72em; }
+.reveal .acciones span::before { content: "→ "; color: var(--gris); }
 
 /* Tokens */
 .reveal .tokens i {
@@ -269,6 +277,17 @@
 .reveal .fila.resto .pista i { background: var(--gris); }
 .reveal .fila.tapada { opacity: 0.35; }
 .reveal .fila.tapada .nombre { text-decoration: line-through; color: var(--rojo); }
+/* Con la perilla de temperatura hay una columna más (logit ÷ temperatura, en amarillo
+   como la perilla). La tabla necesita más lugar: se angostan el costado y los nombres. */
+.reveal .grafico.con-division { grid-template-columns: 1.9fr 1fr; }
+.reveal .grafico.con-division .fila { grid-template-columns: 5.2em 3.2em 4.2em 3.7em 4.2em 1fr 3.6em; }
+.reveal .fila .numero-division { font-variant-numeric: tabular-nums; text-align: right; color: var(--amarillo); }
+.reveal .fila .pista.division i { background: var(--amarillo); opacity: 0.75; }
+/* El encabezado usa letra más chica. Acá el tamaño va en cada título y no en la fila,
+   para que las columnas del encabezado midan lo mismo que las de las filas de abajo. */
+.reveal .grafico.con-division .fila.encabezado { font-size: 1em; align-items: end; }
+.reveal .grafico.con-division .fila.encabezado span { font-size: 0.85em; line-height: 1.15; }
+.reveal .fila.encabezado .titulo-division { grid-column: span 2; text-align: center; color: var(--amarillo); }
 
 .reveal .perillas { display: grid; gap: 0.7em; }
 .reveal .perilla { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0.1em 0.6em; font-size: 0.62em; }
@@ -328,3 +347,8 @@
 .reveal .vuelve { font-size: 0.5em; color: var(--gris); margin: 0; opacity: 0.25; transition: opacity 0.3s, color 0.3s; }
 .reveal .vuelve.activo { opacity: 1; color: var(--amarillo); }
 .reveal .entrada-loop .botonera { margin: 0; }
+
+/* Diapositiva «Pedir un formato no lo garantiza» */
+.reveal .pedido-al-modelo { font-size: 1.05em; color: var(--verde); margin: 0.1em 0 0.9em; }
+.reveal .alucinadas { margin: 0.2em 0 1em; }
+.reveal .alucinadas code { color: var(--rojo); font-size: 1.25em; background: var(--caja); border-radius: 8px; padding: 0.15em 0.45em; margin-right: 0.5em; }

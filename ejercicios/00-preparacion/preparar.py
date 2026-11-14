@@ -34,6 +34,7 @@ MODELOS = [
     # ("bartowski/Llama-3.2-1B-Instruct-GGUF", "Llama-3.2-1B-Instruct-Q4_K_M.gguf"),      # 0,8 GB · multilingüe
     # ("HuggingFaceTB/SmolLM2-1.7B-Instruct-GGUF", "smollm2-1.7b-instruct-q4_k_m.gguf"),  # 1,1 GB · solo inglés
     ("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf"),                              # 1,3 GB · multilingüe
+    ("unsloth/Qwen3.5-4B-GGUF", "Qwen3.5-4B-Q4_K_M.gguf"),                              # 2,7 GB · multilingüe · el más capaz de la lista
 ]
 
 # La carpeta modelos/ está en la raíz del taller, dos carpetas arriba de este archivo.

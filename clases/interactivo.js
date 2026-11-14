@@ -494,9 +494,15 @@
     const nota = raiz.querySelector(".nota");
     if (nota) nota.remove();
 
+    // Con la perilla de temperatura se agrega una columna más: logit ÷ temperatura.
+    const conDivision = controles.includes("temperatura");
+    if (conDivision) raiz.classList.add("con-division");
+
     const tabla = crear("div", "grafico-tabla");
     const encabezado = crear("div", "fila encabezado");
-    encabezado.append(crear("span", "", "token"), crear("span", "", "logit"), crear("span", "", ""), crear("span", "", "probabilidad"), crear("span", "", ""));
+    encabezado.append(crear("span", "", "token"), crear("span", "", "logit"), crear("span", "", ""));
+    if (conDivision) encabezado.append(crear("span", "titulo-division", "logit ÷ temperatura"));
+    encabezado.append(crear("span", "", "probabilidad"), crear("span", "", ""));
     tabla.appendChild(encabezado);
 
     // Escala de las barras de logit: del más bajo que se muestra al más alto.
@@ -511,9 +517,18 @@
       const relleno = crear("i");
       pista.appendChild(relleno);
       const valor = crear("span", "valor");
-      fila.append(crear("span", "nombre", visible(grupo.pieza)), crear("span", "numero-logit", grupo.logit.toFixed(2)), pistaLogit, pista, valor);
+      fila.append(crear("span", "nombre", visible(grupo.pieza)), crear("span", "numero-logit", grupo.logit.toFixed(2)), pistaLogit);
+      // La columna de logit ÷ temperatura: el número y su barra.
+      const numeroDivision = crear("span", "numero-division");
+      const rellenoDivision = crear("i");
+      if (conDivision) {
+        const pistaDivision = crear("span", "pista division");
+        pistaDivision.appendChild(rellenoDivision);
+        fila.append(numeroDivision, pistaDivision);
+      }
+      fila.append(pista, valor);
       tabla.appendChild(fila);
-      return { fila, relleno, valor };
+      return { fila, relleno, valor, logit: grupo.logit, numeroDivision, rellenoDivision };
     });
 
     // La última fila junta a todos los tokens que no se muestran.
@@ -523,7 +538,9 @@
     const rellenoResto = crear("i");
     pistaResto.appendChild(rellenoResto);
     const valorResto = crear("span", "valor");
-    filaResto.append(nombreResto, crear("span"), crear("span"), pistaResto, valorResto);
+    filaResto.append(nombreResto, crear("span"), crear("span"));
+    if (conDivision) filaResto.append(crear("span"), crear("span"));
+    filaResto.append(pistaResto, valorResto);
     tabla.appendChild(filaResto);
 
     const panel = crear("div", "perillas");
@@ -572,6 +589,16 @@
         fila.relleno.style.width = mostradas[i] * 100 + "%";
         fila.valor.textContent = porcentaje(mostradas[i]);
         fila.fila.classList.toggle("tapada", vivos[i] === 0);
+
+        // logit ÷ temperatura. El número es la división del logit tal como se muestra
+        // (con dos decimales), para que la cuenta de la pantalla dé exacta.
+        // La barra usa la misma escala que la del logit, medida desde el favorito:
+        // con temperatura 1 las dos barras son iguales; con menos, las diferencias
+        // con el favorito se agrandan; con más, se achican.
+        fila.numeroDivision.textContent = (Number(fila.logit.toFixed(2)) / estado.temperatura).toFixed(2);
+        const distancia = (LOGIT_MAXIMO - fila.logit) / estado.temperatura;
+        const ancho = 1 - distancia / (LOGIT_MAXIMO - logitMinimo);
+        fila.rellenoDivision.style.width = Math.max(0, ancho) * 100 + "%";
       });
       nombreResto.textContent = "el resto...";
       rellenoResto.style.width = restoP * 100 + "%";

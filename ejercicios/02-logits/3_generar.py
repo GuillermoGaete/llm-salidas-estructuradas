@@ -19,7 +19,7 @@ PASOS = 12         # cuántos tokens escribir
 # logits_all=True: que la librería guarde los logits después de leer.
 # Si no se lo pedimos, no los guarda (para ahorrar memoria).
 # verbose=False: que la librería no llene la pantalla con sus mensajes internos.
-modelo = Llama("../../modelos/Qwen3-0.6B-Q4_K_M.gguf", logits_all=True, verbose=False)
+modelo = Llama("../../modelos/Qwen3.5-2B-Q4_K_M.gguf", logits_all=True, verbose=False)
 # Pedirle al usuario un texto, y repetir hasta que escriba "chau".
 texto = input("Escribí un texto (si queres salir escribi 'chau'): ")
 while texto != "chau":
@@ -30,7 +30,7 @@ while texto != "chau":
     tokens = modelo.tokenize(texto.encode("utf-8"))
     modelo.eval(tokens)
 
-    elegidos = []
+    respuesta = []
     for paso in range(1, PASOS + 1):
         # 1. Los logits del próximo token, y sus probabilidades.
         logits = modelo.scores[modelo.n_tokens - 1]
@@ -62,10 +62,16 @@ while texto != "chau":
         print(f"→ salió {pedacito!r}")
 
         # 3. Agregar el token elegido: ahora el modelo también lo lee.
-        elegidos.append(elegido)
+        respuesta.append(elegido)
+
+        #    Parece que le pasamos un solo token, pero el modelo no empieza de cero:
+        #    eval AGREGA tokens a lo que ya leyó. El modelo se acuerda del texto
+        #    anterior (hasta que llamemos a modelo.reset()), así que alcanza con
+        #    darle el token nuevo. Los logits que deja son los del token que sigue
+        #    a TODO el texto: el inicial más los que fueron saliendo.
         modelo.eval([elegido])
 
     print()
-    print(texto + modelo.detokenize(elegidos).decode("utf-8", errors="replace"))
+    print(texto + modelo.detokenize(respuesta).decode("utf-8", errors="replace"))
 
     texto = input("\nEscribí un texto (si queres salir escribi 'chau'): ")

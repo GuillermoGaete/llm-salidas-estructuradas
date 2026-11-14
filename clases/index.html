@@ -171,7 +171,7 @@ uv run python preparar.py
           <span class="armada"><em>casadas</em><b>=</b><span class="ficha color-4">cas</span><span class="ficha color-2">adas</span></span>
           <span class="armada"><em>empanadaza</em><b>=</b><span class="ficha color-0">em</span><span class="ficha color-1">pan</span><span class="ficha color-3">ad</span><span class="ficha color-4">aza</span></span>
         </p>
-        <p class="problema"><span class="verde">✓</span> Con los mismos pedazos se arman palabras distintas, incluso una inventada.</p>
+        <p class="problema"><span class="verde">✓</span> Con los mismos tokens se arman palabras distintas</p>
       </div>
     </div>
   </div>  </aside>
@@ -195,7 +195,7 @@ uv run python preparar.py
 
 <section>
   <h2>¿Qué es un <span class="azul">token</span>?</h2>
-  <p class="chico">Un pedacito de texto con un número. El modelo <strong>solo ve los números</strong>.</p>
+  <p class="chico">Una unidad de texto con un número asociado. El modelo internamente <strong>solo ve los números</strong>.</p>
   <div data-interactivo="tokenizador"></div>
   <aside class="notes">
     Hacer clic en cada frase. El punto «·» marca un espacio: casi siempre el espacio va pegado al comienzo del token.
@@ -306,20 +306,135 @@ uv run python 3_generar.py
   </aside>
 </section>
 
-<!-- ====================== SEGUNDA PARTE ======================
-     De acá en adelante son las diapositivas de la versión anterior del taller
-     (máscara, Outlines, kiosco). Falta repensarlas: todavía nombran el «gancho»
-     y la numeración vieja de los ejercicios. -->
-
-<!-- ====================== 04 MÁSCARA ====================== -->
+<!-- ====================== TEMPERATURA ====================== -->
 <section>
-  <h2 class="pregunta">¿Cómo hago para que algo que tira dados cumpla <span class="amarillo">siempre</span>?</h2>
-  <p class="respuesta fragment">Le <span class="amarillo">tapo las caras</span> que no sirven<br>antes de tirar.</p>
+  <h2><span class="amarillo">Temperatura</span></h2>
+  <p class="chico">Un número que cambia las probabilidades <strong>antes del sorteo</strong>: <code>softmax(logit ÷ temperatura)</code></p>
+  <div class="grafico" data-interactivo="grafico" data-controles="temperatura sortear" data-filas="10"></div>
+  <!-- La explicación va arriba y abajo del gráfico, no al costado: así las fichas
+       que se acumulan al sortear no la empujan fuera de la diapositiva. -->
+  <div class="tres-ideas">
+    <p><strong class="azul">Baja</strong> (0.2): casi siempre sale el más probable.</p>
+    <p><strong>1</strong>: las probabilidades del modelo, sin cambios.</p>
+    <p><strong class="rojo">Alta</strong> (2): se emparejan, y salen más seguido los tokens raros.</p>
+  </div>
   <aside class="notes">
-    Dejar que lo propongan ellos antes de mostrar la respuesta. Ya tienen todo: saben que hay puntajes y un sorteo.
+    Es la misma tabla del sorteo, con una perilla. Los logits (columna verde) no cambian nunca: los da el modelo. Lo que cambia es cómo se pasan a probabilidades.
+    La columna amarilla es el paso del medio: cada logit dividido por la temperatura. El número es la división tal cual (con 0.2, el 15.18 de pizza pasa a 75.90).
+    La barra amarilla muestra qué tan lejos queda cada token del favorito, con la misma escala que la barra verde. Con 1 las dos son iguales. Con temperatura baja las diferencias se agrandan y pizza queda sola; con temperatura alta se achican y quedan todas casi llenas. Por eso cambian las probabilidades.
+    Mover la perilla y sortear varias veces en cada posición. Números reales para «Mi comida favorita es la»:
+    con 1.0, pizza tiene 27,8%. Con 0.5 sube a 80%. Con 0.2 llega a 99,5%: sale casi siempre.
+    Con 2.0, pizza baja a 1,6% y «el resto» junta 93%: el vocabulario tiene 151.936 tokens, y entre todos los raros se llevan casi todo.
+    El orden de los tokens no cambia con ninguna temperatura: pizza sigue siendo el favorito.
+    Con temperatura baja lo raro sale menos, pero no queda prohibido. Temperatura 0 es un caso aparte: la librería no sortea, elige siempre el más probable.
+    En los programas es el valor temp de modelo.sample (ejercicio 02) y TEMPERATURA en el ejercicio 03.
   </aside>
 </section>
 
+<!-- ====================== SEGUNDA PARTE ======================
+     La apertura (hasta el ejercicio 03 y la diapositiva que le sigue) ya es la
+     del recorrido nuevo. -->
+
+<!-- ====================== 03 UN LLM ADENTRO DE UN PROGRAMA ====================== -->
+<section>
+  <h2>Parte 2</h2>
+  <p class="respuesta">Un LLM <span class="amarillo">no es determinista</span>.</p>
+  <ul class="espaciada">
+    <li>La misma pregunta puede dar <strong>respuestas distintas</strong>.</li>
+    <li class="fragment">Cada tanto da una respuesta que <strong class="rojo">no esperábamos</strong>.</li>
+    <li class="fragment">Un programa que usa un LLM tiene que <strong class="verde">comprobar</strong> lo que el modelo devolvió.</li>
+  </ul>
+  <aside class="notes">
+    Viene directo de la parte 1: cada token sale de un sorteo, así que la respuesta entera también.
+    Integrar un LLM en una aplicación es esto: pedirle algo, y antes de usar la respuesta, mirar qué devolvió.
+  </aside>
+</section>
+
+<section>
+  <h2>Un ejemplo: clasificar el <span class="azul">mensaje</span> de un cliente</h2>
+  <p class="mensaje-cliente">«Las empanadas llegaron frías y tarde»</p>
+  <div class="dos-columnas">
+    <div>
+      <h3>Lo que el programa espera</h3>
+      <div class="acciones">
+        <code>"reclamo"</code><span>se lo paso a una persona</span>
+        <code>"consulta"</code><span>le mando las preguntas frecuentes</span>
+        <code>"pedido"</code><span>lo anoto para la cocina</span>
+        <code>"saludo"</code><span>le devuelvo el saludo</span>
+      </div>
+    </div>
+    <div class="fragment">
+      <h3>Lo que respondió el modelo, 20 veces</h3>
+      <div class="barras respuestas">
+        <div class="barra"><span class="nombre">'reclamo'</span><span class="pista"><i style="width:65%"></i></span><span class="valor">13</span></div>
+        <div class="barra"><span class="nombre">'saludo'</span><span class="pista"><i style="width:15%"></i></span><span class="valor">3</span></div>
+        <div class="barra"><span class="nombre">'consulta'</span><span class="pista"><i style="width:10%"></i></span><span class="valor">2</span></div>
+        <div class="barra rara"><span class="nombre">'reclam'</span><span class="pista"><i style="width:5%"></i></span><span class="valor">1</span></div>
+        <div class="barra rara"><span class="nombre">'clima'</span><span class="pista"><i style="width:5%"></i></span><span class="valor">1</span></div>
+        <div class="barra rara"><span class="nombre">'clama'</span><span class="pista"><i style="width:5%"></i></span><span class="valor">1</span></div>
+      </div>
+    </div>
+  </div>
+  <p class="fragment">3 de 20 respuestas no son ninguna de las cuatro: el programa <span class="rojo">no sabe qué hacer</span>.</p>
+  <aside class="notes">
+    Los números son reales: una corrida de clasificar.py (ejercicio 03) con Qwen3.5-2B y temperatura 1.0. Cada corrida da números distintos.
+    Las instrucciones al modelo decían: «Clasificá el mensaje del cliente en una de estas categorías: reclamo, consulta, pedido, saludo. Respondé solo con la categoría.»
+    Hay dos problemas distintos. «saludo» y «consulta» están en la lista pero no son la categoría correcta: el programa las puede usar, aunque estén mal. «reclam», «clima» y «clama» no están en la lista: el programa no las puede usar.
+    La parte 2 se ocupa del segundo problema.
+  </aside>
+</section>
+
+<section class="ejercicio" data-background-color="#12303a">
+  <h2><span class="numero">03</span> Un LLM adentro de un programa</h2>
+  <pre class="comando"><code class="language-bash" data-trim>
+cd ejercicios/03-clasificar
+uv run python clasificar.py
+  </code></pre>
+  <ol class="pasos">
+    <li>Escribí el mensaje de un cliente: el modelo lo clasifica <strong>20 veces</strong></li>
+    <li>Contá las ❌: son las respuestas que el programa no esperaba</li>
+    <li>Repetí el mismo mensaje, y probá con otros</li>
+    <li>Cambiá <code>TEMPERATURA</code> a <code>0.2</code> y repetí</li>
+  </ol>
+  <aside class="notes">
+    Usa Qwen3.5-2B. En la máquina donde se preparó, cada respuesta tarda menos de medio segundo.
+    Con «Hola, buenas tardes» aparece seguido 'Saludo', con mayúscula: para el programa no es lo mismo que 'saludo'.
+    Con temperatura 0.2 las respuestas raras aparecen mucho menos: en una prueba de 200 respuestas no salió ninguna, contra 23 de 200 con temperatura 1.0.
+    Que aparezcan menos no quiere decir que no puedan aparecer.
+  </aside>
+</section>
+
+<section>
+  <h2>Cuando la respuesta <span class="rojo">no es la esperada</span></h2>
+  <div class="tres-columnas">
+    <div class="tarjeta">
+      <h3>Cortar con un error</h3>
+      <p><code>KeyError: 'clima'</code></p>
+      <p class="gris">El programa se detiene y el cliente se queda sin respuesta.</p>
+    </div>
+    <div class="tarjeta">
+      <h3>Preguntar de nuevo</h3>
+      <p>Otra llamada al modelo.</p>
+      <p class="gris">Tarda más, y la respuesta nueva también puede salir mal.</p>
+    </div>
+    <div class="tarjeta">
+      <h3>Un caso especial</h3>
+      <p>Pasar a minúsculas arregla <code>'Saludo'</code>.</p>
+      <p class="gris">No arregla <code>'clima'</code>. Cada caso nuevo es más código.</p>
+    </div>
+  </div>
+  <p class="fragment">Hay otra opción: que el modelo <strong class="amarillo">solo pueda</strong> responder una de las cuatro.<br>Eso es una <strong>salida estructurada</strong>.</p>
+  <aside class="notes">
+    Las tres primeras son lo que se hace cuando la respuesta ya salió mal. La cuarta evita que salga mal.
+    Cómo se logra es lo que sigue.
+  </aside>
+</section>
+
+<!-- ====================== 04 MÁSCARA ======================
+     La diapositiva del ejercicio 04 ya es la de los programas nuevos
+     (mascara_v1.py y mascara_v2.py).
+     Las dos que la preceden vienen de la versión anterior: los porcentajes de
+     «La máscara» son ilustrativos, no salen del modelo. -->
 <section>
   <h2>La máscara</h2>
   <p class="chico gris">Quiero una patente <code>AB 123 CD</code>. Ya se escribió «AB». Ahora <strong>tiene</strong> que venir un espacio.</p>
@@ -366,84 +481,96 @@ uv run python 3_generar.py
 </section>
 
 <section class="ejercicio central" data-background-color="#3a2a12">
-  <h2><span class="numero">04</span> La máscara, a mano</h2>
+  <h2><span class="numero">04</span> La máscara</h2>
   <pre class="comando"><code class="language-bash" data-trim>
 cd ejercicios/04-mascara
-python ejercicio.py
-uv run python con_modelo.py
+uv run python mascara_v1.py
+uv run python mascara_v2.py
   </code></pre>
   <ol class="pasos">
-    <li><code>enmascarar</code>: los no permitidos pasan a <code>-math.inf</code></li>
-    <li><code>avanzar</code>: estado + carácter → estado nuevo, o <code>None</code></li>
-    <li><code>probar_token</code>: lo mismo para un token entero</li>
-    <li>Cambiá el formato: una fecha, un DNI</li>
+    <li><code>mascara_v1.py</code>: un modelo ficticio de 38 tokens. Se ve la máscara entera</li>
+    <li><code>mascara_v2.py</code>: la misma máscara, con el modelo real</li>
+    <li>En cada paso, compará «El modelo quiere» con «Con la máscara»</li>
+    <li>Cambiá <code>FORMATO</code>, <code>TEXTO</code> y <code>TEMPERATURA</code></li>
   </ol>
   <aside class="notes">
-    Para conversar: El modelo da puntajes al azar. ¿Puede salir una patente mal formada? 99/99/9999 cumple el formato de fecha. ¿Es una fecha?
-    Con "DD/DD/DDDD" el vocabulario de juguete se traba: no tiene el token "/". Es a propósito:
-    la gramática no puede pedir algo que el vocabulario no sabe escribir. Con el modelo real sí funciona.
+    En los dos programas la máscara ya está escrita: no hay que completar nada. Está en la función armar_mascara.
+    Versión 1: el modelo es ficticio. Su vocabulario son las 27 letras, los 10 dígitos y el espacio, y da logits al azar. La primera línea muestra lo que escribe solo, sin máscara. En cada paso se ven los 38 tokens y cuáles quedan tapados. El formato solo puede tener letras, dígitos y espacios.
+    Versión 2: la función armar_mascara es más larga porque un token real puede tener varios caracteres. Recorre los 248.320 tokens y anota, para cada uno, si sirve o no sirve. Está comentada parte por parte, por si hace falta explicarla.
+    La versión 2 usa el modelo real (Qwen3.5-2B). Con el formato de patente, en una corrida: al empezar pasan 588 tokens; después de las dos letras pasa uno solo, el espacio; en cada dígito pasan 10.
+    El paso 2 es el de la diapositiva de la máscara: ya hay dos letras escritas y el modelo quiere un guion o un dígito; con la máscara solo queda el espacio.
+    El programa no pide nada por teclado: TEXTO, FORMATO y TEMPERATURA se cambian arriba, en el archivo.
+    El texto es lo que lee el modelo antes de escribir: cambia qué letras y números prefiere, no el formato. Con «Hola, ¿cómo estás?» también sale una patente.
+    Con "DD/DD/DDDD" salen fechas con el formato correcto que no existen: en una prueba salió 70/80/9000. La máscara garantiza la forma, no que el contenido sea verdad.
   </aside>
 </section>
 
 <section>
-  <h2><span class="rojo">Pedir</span> no es <span class="verde">forzar</span></h2>
-  <div class="dos-columnas">
-    <div class="tarjeta">
-      <h3 class="rojo">Pedir en el prompt</h3>
-      <p>«Respondé SOLO con JSON»</p>
-      <p class="gris">El modelo <em>casi siempre</em> hace caso.<br>El gancho: 0 de 10.</p>
-    </div>
-    <div class="tarjeta">
-      <h3 class="verde">Forzar en el sorteo</h3>
-      <p>Máscara sobre los puntajes</p>
-      <p class="gris">Lo que rompe el formato tiene probabilidad cero.<br><strong>No puede</strong> salir.</p>
-    </div>
-  </div>
+  <h2>Pedir un formato <span class="rojo">no lo garantiza</span></h2>
+  <p class="chico gris">Le pedimos al modelo:</p>
+  <p class="pedido-al-modelo">«Respondé solo con la categoría: reclamo, consulta, pedido o saludo»</p>
+  <p class="chico gris">Casi siempre hace caso. Cada tanto responde:</p>
+  <p class="alucinadas"><code>'reclam'</code><code>'clima'</code><code>'Saludo'</code></p>
+  <p class="fragment">Si solo se lo pedimos, queda lugar para que el modelo <strong class="amarillo">alucine el formato</strong>.</p>
+  <aside class="notes">
+    Una sola idea: pedir el formato en el prompt es una instrucción, no una garantía. El modelo sigue sorteando entre todos los tokens, así que puede salir cualquier cosa.
+    Las tres respuestas son reales, del ejercicio 03: una palabra cortada, una que no está en la lista y una con mayúscula.
+    Para decir en voz alta: la máscara del ejercicio 04 es lo que cierra ese lugar. Ahí no se le pide el formato al modelo: lo que no cumple el formato no puede salir.
+  </aside>
 </section>
 
-<!-- ====================== 05 OUTLINES ====================== -->
+<!-- ====================== 05 OUTLINES ======================
+     Las dos diapositivas del ejercicio 05 ya son las de los programas nuevos. -->
 <section>
-  <h2>Lo mismo, con una librería</h2>
-  <pre><code class="language-python" data-trim data-line-numbers="1|3-4|6-7|9-13">
-respuesta = modelo(prompt, tipo_de_salida)
-
-# Lista cerrada: el LLM vuelve a ser un clasificador
-modelo(prompt, Literal["pedido", "consulta", "reclamo"])
-
-# Expresión regular: nuestro "LL DDD LL"
-modelo(prompt, Regex(r"[A-Z]{2} [0-9]{3} [A-Z]{2}"))
-
-# Esquema: un JSON con estos campos y estos tipos
-class Producto(BaseModel):
-    nombre: str
-    precio: int
-modelo(prompt, Producto)
-  </code></pre>
-  <p class="chico">Outlines, XGrammar, llguidance, las gramáticas de llama.cpp: <strong>todas hacen lo que escribiste en el ejercicio 04</strong>.</p>
+  <h2><span class="amarillo">Outlines</span>: la máscara, hecha por una librería</h2>
+  <div class="cadena">
+    <div class="caja"><small>le pasamos</small>el texto</div>
+    <b>+</b>
+    <div class="caja"><small>le pasamos</small>el <strong class="amarillo">formato</strong></div>
+    <b>→</b>
+    <div class="caja"><small>Outlines</small>arma la máscara</div>
+    <b>→</b>
+    <div class="caja verde">una respuesta con ese formato</div>
+  </div>
+  <ul class="espaciada">
+    <li>Es una librería a la que se le pasa un <strong class="amarillo">formato</strong>.</li>
+    <li class="fragment">Ella construye la <strong>máscara</strong> para ese formato.</li>
+    <li class="fragment">Hace todo lo que hicimos <strong>a mano</strong> en el ejercicio 04.</li>
+  </ul>
   <aside class="notes">
-    Cambian la velocidad y qué gramáticas soportan. Los servicios comerciales («structured outputs», «JSON mode») usan la misma idea.
+    Una sola idea: ya no escribimos la máscara. Le decimos a la librería qué formato queremos y ella se ocupa.
+    En el ejercicio 05 el formato se pasa de tres maneras: una expresión regular (la patente del ejercicio 04), una lista cerrada (las cuatro categorías del ejercicio 03) y un esquema (un JSON con ciertos datos).
+    Outlines no es la única: XGrammar, llguidance y las gramáticas de llama.cpp hacen lo mismo. Cambian la velocidad y qué formatos soportan.
+    Los servicios comerciales («structured outputs», «JSON mode») usan la misma idea.
   </aside>
 </section>
 
 <section class="ejercicio" data-background-color="#12303a">
-  <h2><span class="numero">05</span> Outlines</h2>
+  <h2><span class="numero">05</span> Lo mismo, con una librería</h2>
   <pre class="comando"><code class="language-bash" data-trim>
 cd ejercicios/05-outlines
-uv run python ejercicio.py
+uv run python 1_patente.py
+uv run python 2_clasificar.py
+uv run python 3_esquema.py
   </code></pre>
   <ol class="pasos">
-    <li><code>clasificar</code> con <code>Literal</code></li>
-    <li><code>inventar_patente</code> con <code>Regex</code></li>
-    <li><code>Producto</code>: un esquema de tres campos</li>
+    <li><code>1_patente.py</code>: la patente del ejercicio 04, con una expresión regular</li>
+    <li><code>2_clasificar.py</code>: el programa del ejercicio 03, con una lista cerrada</li>
+    <li><code>3_esquema.py</code>: varios datos juntos, en un JSON</li>
   </ol>
   <aside class="notes">
-    Para conversar: «che, me vino todo helado»: ¿ahora acierta? ¿De dónde salieron los pesos? «hola» no es ninguna de las tres. ¿Qué responde?
-    El círculo se cierra: un LLM con una lista cerrada ES un clasificador, pero sin escribir pesos a mano.
-    «hola» obliga a elegir una de tres: la máscara no deja decir «ninguna». Solución: agregar la clase «otro».
+    Los tres usan el mismo modelo que los ejercicios 03 y 04 (Qwen3.5-2B). Cada respuesta tarda uno o dos segundos en la máquina donde se preparó.
+    En 1_patente.py no hay máscara escrita: comparar con mascara_v2.py.
+    En 2_clasificar.py la cuenta del final da 0 de 20. En el ejercicio 03, con el mismo mensaje, aparecían respuestas fuera de la lista (3 de 20 en la corrida de la diapositiva).
+    «jajaja» no es ninguna de las cuatro categorías, y el modelo igual responde una: la máscara no deja decir «ninguna». Se arregla sumando una categoría, por ejemplo «otro».
+    En 3_esquema.py el JSON siempre se puede leer, pero el contenido puede estar mal. En una prueba, «me das media docena de medialunas?» dio producto «media docena de medias» y cantidad 14.
   </aside>
 </section>
 
-<!-- ====================== 06 KIOSCO ====================== -->
+<!-- ====================== 06 KIOSCO ======================
+     La diapositiva del ejercicio 06 ya es la del programa nuevo (kiosco.py).
+     Las dos del cierre, que vienen después, son de la versión anterior:
+     «Lo que hicimos hoy» todavía usa la numeración vieja de los ejercicios. -->
 <section class="ejercicio" data-background-color="#12303a">
   <h2><span class="numero">06</span> El tomador de pedidos</h2>
   <div class="cadena">
@@ -457,18 +584,19 @@ uv run python ejercicio.py
   </div>
   <pre class="comando"><code class="language-bash" data-trim>
 cd ejercicios/06-kiosco
-uv run python ejercicio.py
+uv run python kiosco.py
   </code></pre>
-  <ol class="pasos en-linea">
-    <li><code>Item</code> y <code>Pedido</code></li>
-    <li><code>tomar_pedido</code></li>
-    <li><code>total</code></li>
-    <li>Rompelo</li>
-    <li>Atendé vos</li>
+  <ol class="pasos">
+    <li>Escribí un pedido: el modelo lo pasa a datos y Python hace la cuenta</li>
+    <li>Probá con 400 empanadas, y con una docena</li>
+    <li>Pedí algo que no está en el menú, y saludá sin pedir nada</li>
+    <li>Agregá un producto a <code>PRECIOS</code> y cambiá <code>TEMPERATURA</code></li>
   </ol>
   <aside class="notes">
-    Es el mismo problema del gancho. Ahora el programa nunca se rompe al leer.
-    Guiar el paso 4: 400 empanadas, la humita que no está en el menú, «3 de carne, 6 de pollo y dos cocas».
+    El programa está completo: no hay que escribir nada. Usa Outlines con un esquema, como la parte 3 del ejercicio 05, y el mismo modelo (Qwen3.5-2B). Cada pedido tarda uno o dos segundos en la máquina donde se preparó.
+    Es el mismo problema del ejercicio 03, con una respuesta más grande: un pedido entero en vez de una palabra. El JSON siempre se puede leer, y el producto siempre es uno del menú: por eso PRECIOS[producto] no da error.
+    El contenido puede estar mal. En las pruebas: con «¿tienen empanadas de humita? dame dos» anotó 2 empanadas de jamón y queso; con 400 empanadas cobró $480.000 sin dudar; con «hola, ¿cómo andan?» devolvió una lista vacía y total $0.
+    La temperatura arranca en 0.2. Con 1.0 aparecen más errores de contenido (items con cantidad 0, pedidos inventados para un saludo), pero el JSON se sigue pudiendo leer.
   </aside>
 </section>
 

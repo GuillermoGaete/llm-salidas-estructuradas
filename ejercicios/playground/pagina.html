@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Playground</title>
+  <style>
+    :root { --fondo: #0f1b2b; --texto: #ece6d9; --gris: #8fa1b3; --azul: #58c4dd; --amarillo: #f4d345; --verde: #83c167; --rojo: #fc6255; --caja: #1a2c44; --borde: #2e4563; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: var(--fondo); color: var(--texto); font: 16px/1.4 system-ui, sans-serif; }
+    h1 { margin: 0 0 14px; font-size: 22px; }
+    textarea, select, input, button { font: inherit; color: var(--texto); background: var(--caja); border: 2px solid var(--borde); border-radius: 8px; padding: 8px 10px; }
+    textarea { width: 100%; height: 90px; resize: vertical; }
+    textarea.codigo { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px; height: 190px; white-space: pre; }
+    button { background: var(--azul); border-color: var(--azul); color: var(--fondo); font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    button.secundario { background: none; color: var(--azul); }
+    [hidden] { display: none !important; }
+
+    /* Las pestañas */
+    .pestanas { display: flex; gap: 6px; margin-bottom: 20px; border-bottom: 2px solid var(--borde); }
+    .pestanas button { background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0; color: var(--gris); font-weight: 400; padding: 8px 14px; margin-bottom: -2px; }
+    .pestanas button.activa { color: var(--texto); border-bottom-color: var(--amarillo); font-weight: 700; }
+
+    .controles { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin: 10px 0 18px; color: var(--gris); }
+    .controles input[type=number] { width: 80px; }
+    .controles select { max-width: 320px; }
+    .controles label.tilde { display: flex; align-items: center; gap: 6px; color: var(--texto); }
+    .controles input[type=checkbox] { width: 18px; height: 18px; padding: 0; accent-color: var(--amarillo); }
+    .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .dos h3, .caja h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--azul); font-weight: 700; }
+    .ayuda { color: var(--gris); font-size: 13px; margin: 6px 0; }
+    .caja { background: var(--caja); border: 2px solid var(--borde); border-radius: 12px; padding: 14px; margin-top: 16px; min-width: 0; }
+    .estado { color: var(--gris); font-size: 14px; margin: 0 0 8px; min-height: 20px; }
+    .estado.error, .mal { color: var(--rojo); }
+    .bien { color: var(--verde); }
+    pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: 15px/1.45 ui-monospace, Menlo, Consolas, monospace; }
+    details { margin-top: 12px; color: var(--gris); font-size: 13px; }
+    details pre { font-size: 13px; margin-top: 8px; color: var(--texto); }
+
+    /* Pestaña 1: las tres columnas */
+    .columnas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
+    .columna { background: var(--caja); border: 2px solid var(--borde); border-radius: 12px; padding: 14px; min-width: 0; }
+    .columna h2 { margin: 0 0 8px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--azul); }
+    .columna select { width: 100%; background: var(--fondo); }
+    .temperatura { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: var(--gris); font-size: 13px; }
+    .temperatura input { width: 70px; padding: 4px 8px; background: var(--fondo); }
+    .texto { white-space: pre-wrap; font-size: 17px; margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; color: var(--gris); font-weight: 400; padding: 5px 8px; border-bottom: 1px solid var(--borde); }
+    td { padding: 5px 8px; border-bottom: 1px solid var(--borde); vertical-align: middle; }
+    th.numero, td.numero { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    code { font-family: ui-monospace, Menlo, Consolas, monospace; white-space: pre; background: var(--fondo); border-radius: 4px; padding: 1px 5px; }
+    .salio code { color: var(--amarillo); }
+    .tokens tr.fila { cursor: pointer; }
+    .tokens tr.fila:hover td { background: rgba(88, 196, 221, 0.12); }
+    .ver { background: none; border: 1px solid var(--borde); color: var(--azul); font-weight: 400; font-size: 12px; padding: 2px 8px; }
+    dialog { background: var(--caja); color: var(--texto); border: 2px solid var(--azul); border-radius: 12px; padding: 20px 22px; width: min(720px, 92vw); }
+    dialog::backdrop { background: rgba(0, 0, 0, 0.65); }
+    dialog h2 { margin: 0 0 4px; font-size: 18px; }
+    dialog .ayuda { margin-bottom: 14px; }
+    dialog td.numero { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+    dialog .pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; }
+
+    /* Pestaña 3: las barras de la cuenta */
+    .cuenta { display: grid; gap: 8px; }
+    .renglon { display: grid; grid-template-columns: minmax(140px, 300px) 1fr 110px; align-items: center; gap: 12px; }
+    .renglon .pista { height: 22px; background: rgba(255, 255, 255, 0.06); border-radius: 5px; overflow: hidden; }
+    .renglon .pista i { display: block; height: 100%; width: 0; background: var(--azul); border-radius: 5px; transition: width 0.25s ease; }
+    .renglon.mayor .pista i { background: var(--amarillo); }
+    .renglon.aparte .nombre { color: var(--gris); font-style: italic; }
+    .renglon .valor { font-variant-numeric: tabular-nums; color: var(--gris); text-align: right; white-space: nowrap; }
+    @media (max-width: 900px) { .columnas, .dos { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>Playground</h1>
+  <div class="pestanas">
+    <button data-pestana="comparar" class="activa">Comparar modelos</button>
+    <button data-pestana="estructurada">Salida estructurada</button>
+    <button data-pestana="sesgos">Sesgos</button>
+  </div>
+
+  <!-- ============================ Pestaña 1: comparar modelos ============================ -->
+  <section id="comparar">
+    <textarea id="prompt">¿Cuál es la capital de Francia? Respondé en una sola oración.</textarea>
+    <div class="controles">
+      <button id="enviar">Enviar</button>
+      <label>Máximo de tokens <input id="maximo" type="number" value="60" min="1" max="400"></label>
+    </div>
+    <div class="columnas">
+      <div class="columna" data-ruta="/local"><h2>Modelo local A</h2><select></select><label class="temperatura">Temperatura <input type="number" value="1" min="0" max="2" step="0.1"></label><p class="estado"></p><p class="texto"></p><div class="tokens"></div></div>
+      <div class="columna" data-ruta="/local"><h2>Modelo local B</h2><select></select><label class="temperatura">Temperatura <input type="number" value="1" min="0" max="2" step="0.1"></label><p class="estado"></p><p class="texto"></p><div class="tokens"></div></div>
+      <div class="columna" data-ruta="/openai"><h2>OpenAI</h2><select></select><label class="temperatura">Temperatura <input type="number" value="1" min="0" max="2" step="0.1"></label><p class="estado"></p><p class="texto"></p><div class="tokens"></div></div>
+    </div>
+  </section>
+
+  <!-- ============================ Pestaña 2: salida estructurada ============================ -->
+  <section id="estructurada" hidden>
+    <div class="controles">
+      <label>Caso <select id="e-caso"></select></label>
+      <label>Modelo <select id="e-modelo"></select></label>
+      <label>Temperatura <input id="e-temperatura" type="number" value="1" min="0" max="2" step="0.1"></label>
+      <label>Máximo de tokens <input id="e-maximo" type="number" value="200" min="1" max="400"></label>
+    </div>
+    <div class="dos">
+      <div>
+        <h3>Prompt</h3>
+        <textarea id="e-prompt" style="height: 190px"></textarea>
+      </div>
+      <div>
+        <h3>Modelo de Pydantic</h3>
+        <textarea id="e-codigo" class="codigo" spellcheck="false"></textarea>
+        <p class="ayuda">Ya están importados BaseModel, Field, Literal, Optional, List y Enum. Si hay varias clases, la principal va al final.</p>
+      </div>
+    </div>
+    <div class="controles">
+      <button id="e-enviar">Enviar</button>
+      <label class="tilde"><input id="e-forzar" type="checkbox" checked> Forzar el formato</label>
+      <span class="ayuda">Sin la tilde, el modelo recibe solo el prompt y responde lo que quiere.</span>
+    </div>
+    <div class="caja">
+      <h3>Respuesta</h3>
+      <p class="estado" id="e-estado">Elegí un caso o escribí el tuyo, y apretá «Enviar».</p>
+      <pre id="e-respuesta"></pre>
+      <details id="e-detalle" hidden>
+        <summary>El formato que se le pasa al modelo (JSON Schema)</summary>
+        <pre id="e-esquema"></pre>
+      </details>
+    </div>
+  </section>
+
+  <!-- ============================ Pestaña 3: sesgos ============================ -->
+  <section id="sesgos" hidden>
+    <p class="ayuda">Preguntas que no tienen una respuesta correcta: el modelo no tiene con qué decidir. Se le hace la misma pregunta muchas veces, obligándolo a elegir una opción, y se cuenta qué elige.</p>
+    <div class="controles">
+      <label>Caso <select id="s-caso"></select></label>
+      <label>Modelo <select id="s-modelo"></select></label>
+      <label>Veces <input id="s-veces" type="number" value="20" min="1" max="200"></label>
+      <label>Temperatura <input id="s-temperatura" type="number" value="1" min="0" max="2" step="0.1"></label>
+    </div>
+    <div class="dos">
+      <div>
+        <h3>Pregunta</h3>
+        <textarea id="s-prompt" style="height: 150px"></textarea>
+        <p class="ayuda">Donde dice <code>{opciones}</code> se escribe la lista de opciones.</p>
+      </div>
+      <div>
+        <h3>Opciones (una por renglón)</h3>
+        <textarea id="s-opciones" style="height: 150px"></textarea>
+      </div>
+    </div>
+    <div class="controles">
+      <button id="s-correr">Correr</button>
+      <button id="s-detener" class="secundario" disabled>Detener</button>
+      <label class="tilde"><input id="s-mezclar" type="checkbox" checked> Mezclar el orden de las opciones cada vez</label>
+      <label class="tilde"><input id="s-abstener" type="checkbox"> Agregar la opción «prefiero no elegir»</label>
+    </div>
+    <div class="caja">
+      <h3>Qué eligió</h3>
+      <p class="estado" id="s-estado">Elegí un caso y apretá «Correr».</p>
+      <div class="cuenta" id="s-cuenta"></div>
+      <p class="ayuda" id="s-ultimo"></p>
+    </div>
+  </section>
+
+  <!-- La ventana que se abre al tocar un token: todas las opciones que había en ese lugar. -->
+  <dialog id="detalle">
+    <h2 id="detalle-titulo"></h2>
+    <p class="ayuda" id="detalle-ayuda"></p>
+    <table id="detalle-tabla"></table>
+    <div class="pie">
+      <span class="ayuda">La probabilidad es <em>e</em> elevado al logprob. Un logprob de 0 es 100%: cuando aparece junto a otras opciones, es que el modelo redondeó, y lo que le falta para 100 es lo que suman las demás.</span>
+      <button id="detalle-cerrar">Cerrar</button>
+    </div>
+  </dialog>
+
+  <script>
+    // ------------------------------------------------------------------ ayudas
+
+    const elemento = (id) => document.getElementById(id);
+
+    /** Crea un elemento: crear("td", "clase", "texto"). */
+    function crear(etiqueta, clase, texto) {
+      const nuevo = document.createElement(etiqueta);
+      if (clase) nuevo.className = clase;
+      if (texto !== undefined) nuevo.textContent = texto;
+      return nuevo;
+    }
+
+    /** Le manda un pedido al servidor y devuelve la respuesta. Si el servidor informa un error, lo lanza. */
+    async function pedir(ruta, datos) {
+      const respuesta = await (await fetch(ruta, { method: "POST", body: JSON.stringify(datos) })).json();
+      if (respuesta.error) throw new Error(respuesta.error);
+      return respuesta;
+    }
+
+    /** Arma la lista de modelos de las pestañas 2 y 3: los locales y los de OpenAI, cada grupo con su título.
+        El valor de cada opción dice de dónde es el modelo y cómo se llama: "local|archivo" u "openai|nombre". */
+    function llenarModelos(lista, modelos) {
+      [["local", "Locales", modelos.locales], ["openai", "OpenAI", modelos.openai]].forEach(([origen, titulo, nombres]) => {
+        if (!nombres.length) return;
+        const grupo = crear("optgroup");
+        grupo.label = titulo;
+        nombres.forEach((nombre) => {
+          const opcion = crear("option", "", nombre);
+          opcion.value = origen + "|" + nombre;
+          grupo.appendChild(opcion);
+        });
+        lista.appendChild(grupo);
+      });
+      // Arranca con un Qwen3.5 si hay alguno: responde directo, sin «pensar en voz alta».
+      const preferido = [...lista.options].find((opcion) => opcion.value.includes("Qwen3.5"));
+      if (preferido) lista.value = preferido.value;
+    }
+
+    /** Separa el valor de una lista de modelos en sus dos partes. */
+    function modeloElegido(lista) {
+      const [origen, ...resto] = lista.value.split("|");
+      return { origen, modelo: resto.join("|") };
+    }
+
+    // ------------------------------------------------------------- las pestañas
+
+    document.querySelectorAll(".pestanas button").forEach((boton) => {
+      boton.addEventListener("click", () => {
+        document.querySelectorAll(".pestanas button").forEach((otro) => otro.classList.toggle("activa", otro === boton));
+        document.querySelectorAll("body > section").forEach((seccion) => (seccion.hidden = seccion.id !== boton.dataset.pestana));
+      });
+    });
+
+    // --------------------------------------------- pestaña 1: comparar modelos
+
+    const columnas = [...document.querySelectorAll(".columna")];
+    const detalle = elemento("detalle");
+
+    /** Muestra los espacios de un token con un punto medio y los saltos de línea con ↵, para que se vean. */
+    function visible(token) {
+      return token.replace(/ /g, "·").replace(/\n/g, "↵");
+    }
+
+    /** La probabilidad en corto, para la tabla de la respuesta. El valor completo está en el detalle. */
+    function porcentaje(logprob) {
+      if (logprob >= 0) return "100%";
+      const p = Math.exp(logprob) * 100; // la probabilidad es e elevado al logprob
+      if (p < 0.05) return "menos de 0.1%";
+      if (p >= 99.95) return "más de 99.9%";
+      return p.toFixed(1) + "%";
+    }
+
+    /** Escribe un número con todos sus decimales, sin notación científica.
+        `cifras` dice cuántas cifras mostrar a partir de la primera que no es cero. */
+    function completo(numero, cifras) {
+      if (numero === 0) return "0";
+      const decimales = Math.max(0, Math.min(100, cifras - 1 - Math.floor(Math.log10(Math.abs(numero)))));
+      const texto = numero.toFixed(decimales);
+      // Se sacan los ceros que sobran al final: 0.5000 queda 0.5
+      return texto.includes(".") ? texto.replace(/0+$/, "").replace(/\.$/, "") : texto;
+    }
+
+    /** La probabilidad completa, en porcentaje. */
+    function porcentajeCompleto(logprob) {
+      // Un logprob de 0 exacto es un redondeo del modelo: le faltaba tan poco para 100 que no lo informa.
+      if (logprob >= 0) return "100% (redondeado)";
+      const p = Math.exp(logprob) * 100;
+      if (p === 0) return "0% (demasiado chica para escribirla)";
+      // Si está muy cerca de 100, se muestran los decimales que hagan falta para ver cuánto le falta.
+      const falta = -Math.expm1(logprob) * 100;
+      if (falta < 1) return p.toFixed(Math.min(14, 1 - Math.floor(Math.log10(falta)))).replace(/0+$/, "") + "%";
+      const texto = completo(p, 4);
+      return texto === "0" ? "0% (demasiado chica para escribirla)" : texto + "%";
+    }
+
+    /** Arma la tabla de la respuesta: una fila por token, con su probabilidad en corto.
+        Al tocar una fila se abre el detalle de ese token. */
+    function mostrarTokens(lugar, tokens, modelo) {
+      lugar.textContent = "";
+      if (!tokens.length) return;
+      lugar.appendChild(crear("p", "ayuda", "Tocá un token para ver todas las opciones que había y sus logprobs."));
+      const tabla = crear("table");
+      const titulos = crear("tr");
+      titulos.append(crear("th", "", "Token"), crear("th", "numero", "Probabilidad"), crear("th", "", ""));
+      tabla.appendChild(titulos);
+      tokens.forEach((token, posicion) => {
+        const fila = crear("tr", "fila");
+        const salio = crear("td", "salio");
+        salio.appendChild(crear("code", "", visible(token.token)));
+        const ver = crear("td", "numero");
+        ver.appendChild(crear("button", "ver", "Ver"));
+        fila.append(salio, crear("td", "numero", porcentaje(token.logprob)), ver);
+        fila.addEventListener("click", () => abrirDetalle(token, posicion + 1, tokens.length, modelo));
+        tabla.appendChild(fila);
+      });
+      lugar.appendChild(tabla);
+    }
+
+    /** Abre la ventana con todas las opciones que había para un token, con sus valores completos. */
+    function abrirDetalle(token, posicion, total, modelo) {
+      elemento("detalle-titulo").textContent = "Token " + posicion + " de " + total;
+      // Algunos modelos devuelven solo el token que salió, sin las otras opciones.
+      const otras = token.opciones.filter((opcion) => opcion.token !== token.token).length;
+      elemento("detalle-ayuda").textContent = otras
+        ? modelo + " · las opciones más probables que tenía en este lugar"
+        : modelo + " · este modelo no informó otras opciones para este token: solo devolvió el que salió";
+
+      // Las opciones, de la más probable a la menos probable. Si el token que salió
+      // no está entre ellas (pasa con temperatura alta), se agrega.
+      const opciones = token.opciones.slice();
+      if (!opciones.some((opcion) => opcion.token === token.token)) opciones.push({ token: token.token, logprob: token.logprob });
+      opciones.sort((a, b) => b.logprob - a.logprob);
+
+      const tabla = elemento("detalle-tabla");
+      tabla.textContent = "";
+      const titulos = crear("tr");
+      titulos.append(crear("th", "", "Opción"), crear("th", "numero", "Probabilidad"), crear("th", "numero", "Logprob"));
+      tabla.appendChild(titulos);
+      opciones.forEach((opcion) => {
+        const fila = crear("tr");
+        const nombre = crear("td", opcion.token === token.token ? "salio" : "");
+        nombre.appendChild(crear("code", "", visible(opcion.token)));
+        if (opcion.token === token.token) nombre.append(" ← salió");
+        fila.append(nombre, crear("td", "numero", porcentajeCompleto(opcion.logprob)), crear("td", "numero", completo(opcion.logprob, 8)));
+        tabla.appendChild(fila);
+      });
+      detalle.showModal();
+    }
+
+    // La ventana se cierra con el botón, con la tecla Esc o tocando afuera.
+    elemento("detalle-cerrar").addEventListener("click", () => detalle.close());
+    detalle.addEventListener("click", (evento) => {
+      if (evento.target === detalle) detalle.close();
+    });
+
+    /** Le manda el prompt al modelo elegido en una columna y muestra lo que responde. */
+    async function consultar(columna) {
+      const modelo = columna.querySelector("select").value;
+      const estado = columna.querySelector(".estado");
+      const texto = columna.querySelector(".texto");
+      const tokens = columna.querySelector(".tokens");
+      if (!modelo) return;
+      estado.className = "estado";
+      estado.textContent = "Pensando…";
+      texto.textContent = "";
+      tokens.textContent = "";
+      const inicio = Date.now();
+      try {
+        const respuesta = await pedir(columna.dataset.ruta, {
+          modelo,
+          prompt: elemento("prompt").value,
+          maximo: Number(elemento("maximo").value),
+          temperatura: Number(columna.querySelector(".temperatura input").value), // cada columna tiene la suya
+        });
+        estado.textContent = respuesta.tokens.length + " tokens en " + ((Date.now() - inicio) / 1000).toFixed(1) + " s";
+        texto.textContent = respuesta.texto;
+        mostrarTokens(tokens, respuesta.tokens, modelo);
+      } catch (error) {
+        estado.className = "estado error";
+        estado.textContent = error.message;
+      }
+    }
+
+    elemento("enviar").addEventListener("click", async () => {
+      elemento("enviar").disabled = true;
+      await Promise.all(columnas.map(consultar)); // las tres columnas a la vez
+      elemento("enviar").disabled = false;
+    });
+
+    // ------------------------------------------ pestaña 2: salida estructurada
+
+    /** Carga en los cuadros el prompt y el modelo de Pydantic del caso elegido. */
+    function cargarCasoEstructurado(caso) {
+      elemento("e-prompt").value = caso.prompt;
+      elemento("e-codigo").value = caso.modelo;
+    }
+
+    elemento("e-enviar").addEventListener("click", async () => {
+      const estado = elemento("e-estado");
+      const forzar = elemento("e-forzar").checked;
+      elemento("e-enviar").disabled = true;
+      estado.className = "estado";
+      estado.textContent = "Pensando…";
+      elemento("e-respuesta").textContent = "";
+      elemento("e-detalle").hidden = true;
+      const inicio = Date.now();
+      try {
+        const respuesta = await pedir("/estructurada", {
+          ...modeloElegido(elemento("e-modelo")),
+          prompt: elemento("e-prompt").value,
+          codigo: elemento("e-codigo").value,
+          maximo: Number(elemento("e-maximo").value),
+          temperatura: Number(elemento("e-temperatura").value),
+          forzar,
+        });
+        const tardo = ((Date.now() - inicio) / 1000).toFixed(1) + " s";
+        const modo = forzar ? "Con el formato forzado" : "Sin forzar el formato";
+        if (respuesta.cumple) {
+          estado.className = "estado bien";
+          estado.textContent = "✓ " + modo + ": la respuesta cumple el modelo. (" + tardo + ")";
+        } else {
+          estado.className = "estado mal";
+          estado.textContent = "✗ " + modo + ": la respuesta no cumple el modelo. (" + tardo + ")";
+        }
+        // Si la respuesta es un JSON, se muestra ordenada, un dato por renglón.
+        let texto = respuesta.texto;
+        try {
+          texto = JSON.stringify(JSON.parse(respuesta.texto), null, 2);
+        } catch {}
+        elemento("e-respuesta").textContent = texto;
+        if (!respuesta.cumple) elemento("e-respuesta").textContent += "\n\n— Por qué no cumple —\n" + respuesta.problema;
+        elemento("e-esquema").textContent = JSON.stringify(respuesta.esquema, null, 2);
+        elemento("e-detalle").hidden = false;
+      } catch (error) {
+        estado.className = "estado error";
+        estado.textContent = error.message;
+      }
+      elemento("e-enviar").disabled = false;
+    });
+
+    // ------------------------------------------------------- pestaña 3: sesgos
+
+    const ABSTENERSE = "prefiero no elegir";
+    let corriendo = false; // pasa a falso cuando se aprieta «Detener»
+
+    /** Carga en los cuadros la pregunta y las opciones del caso elegido. */
+    function cargarCasoDeSesgos(caso) {
+      elemento("s-prompt").value = caso.prompt;
+      elemento("s-opciones").value = caso.opciones.join("\n");
+    }
+
+    /** Devuelve una copia de la lista, en un orden al azar. */
+    function mezclar(lista) {
+      const copia = lista.slice();
+      for (let i = copia.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copia[i], copia[j]] = [copia[j], copia[i]];
+      }
+      return copia;
+    }
+
+    /** Dibuja una barra por opción, con cuántas veces salió. */
+    function mostrarCuenta(opciones, cuenta, hechas) {
+      const lugar = elemento("s-cuenta");
+      lugar.textContent = "";
+      const mayor = Math.max(...opciones.map((opcion) => cuenta[opcion]));
+      opciones.forEach((opcion) => {
+        const veces = cuenta[opcion];
+        const renglon = crear("div", "renglon" + (veces > 0 && veces === mayor ? " mayor" : "") + (opcion === ABSTENERSE ? " aparte" : ""));
+        const pista = crear("span", "pista");
+        const relleno = crear("i");
+        relleno.style.width = (hechas ? (veces / hechas) * 100 : 0) + "%";
+        pista.appendChild(relleno);
+        const parte = hechas ? " (" + Math.round((veces / hechas) * 100) + "%)" : "";
+        renglon.append(crear("span", "nombre", opcion), pista, crear("span", "valor", veces + parte));
+        lugar.appendChild(renglon);
+      });
+    }
+
+    elemento("s-correr").addEventListener("click", async () => {
+      const estado = elemento("s-estado");
+      const veces = Number(elemento("s-veces").value);
+      // Las opciones: una por renglón, sin renglones vacíos.
+      const opciones = elemento("s-opciones").value.split("\n").map((opcion) => opcion.trim()).filter(Boolean);
+      if (elemento("s-abstener").checked) opciones.push(ABSTENERSE);
+      if (opciones.length < 2) {
+        estado.className = "estado error";
+        estado.textContent = "Hacen falta al menos dos opciones.";
+        return;
+      }
+      const cuenta = Object.fromEntries(opciones.map((opcion) => [opcion, 0]));
+      const elegido = modeloElegido(elemento("s-modelo"));
+      corriendo = true;
+      elemento("s-correr").disabled = true;
+      elemento("s-detener").disabled = false;
+      estado.className = "estado";
+      mostrarCuenta(opciones, cuenta, 0);
+      const inicio = Date.now();
+      let hechas = 0;
+      try {
+        while (hechas < veces && corriendo) {
+          estado.textContent = "Preguntando… " + hechas + " de " + veces;
+          // En cada vuelta las opciones se escriben en otro orden, para que no gane una
+          // solo por estar primera. «Prefiero no elegir» va siempre al final.
+          let enOrden = opciones.filter((opcion) => opcion !== ABSTENERSE);
+          if (elemento("s-mezclar").checked) enOrden = mezclar(enOrden);
+          if (opciones.includes(ABSTENERSE)) enOrden.push(ABSTENERSE);
+          const prompt = elemento("s-prompt").value.replace("{opciones}", enOrden.join(", "));
+          const respuesta = await pedir("/elegir", { ...elegido, prompt, opciones: enOrden, temperatura: Number(elemento("s-temperatura").value) });
+          cuenta[respuesta.respuesta] = (cuenta[respuesta.respuesta] || 0) + 1;
+          hechas++;
+          mostrarCuenta(opciones, cuenta, hechas);
+          elemento("s-ultimo").textContent = "Última pregunta enviada: " + prompt;
+        }
+        estado.textContent = hechas + " respuestas de " + elegido.modelo + " en " + ((Date.now() - inicio) / 1000).toFixed(1) + " s" + (corriendo ? "" : " (detenido)");
+      } catch (error) {
+        estado.className = "estado error";
+        estado.textContent = error.message;
+      }
+      corriendo = false;
+      elemento("s-correr").disabled = false;
+      elemento("s-detener").disabled = true;
+    });
+
+    elemento("s-detener").addEventListener("click", () => (corriendo = false));
+
+    // ------------------------------------------------------------------ armado
+
+    /** Pide al servidor los modelos y los casos, y llena todas las listas. */
+    async function armar() {
+      const modelos = await (await fetch("/modelos")).json();
+      const casos = await (await fetch("/casos")).json();
+
+      // Pestaña 1: cada columna con su lista.
+      columnas.forEach((columna, numero) => {
+        const lista = columna.querySelector("select");
+        const nombres = columna.dataset.ruta === "/local" ? modelos.locales : modelos.openai;
+        nombres.forEach((nombre) => lista.appendChild(crear("option", "", nombre)));
+        // La columna B arranca con el segundo modelo, para que no sean los dos iguales.
+        if (numero === 1 && nombres.length > 1) lista.selectedIndex = 1;
+        // En OpenAI se prefiere un modelo «mini», que es más barato.
+        if (columna.dataset.ruta === "/openai") {
+          const mini = nombres.findIndex((nombre) => nombre.includes("mini"));
+          if (mini >= 0) lista.selectedIndex = mini;
+          if (!modelos.hay_clave) columna.querySelector(".estado").textContent = "Apagada: arrancá el servidor con OPENAI_API_KEY.";
+        }
+      });
+
+      // Pestañas 2 y 3: una sola lista con todos los modelos, y la lista de casos.
+      llenarModelos(elemento("e-modelo"), modelos);
+      llenarModelos(elemento("s-modelo"), modelos);
+      [["e-caso", casos.estructurados, cargarCasoEstructurado], ["s-caso", casos.sesgos, cargarCasoDeSesgos]].forEach(([id, lista, cargar]) => {
+        lista.forEach((caso) => elemento(id).appendChild(crear("option", "", caso.nombre)));
+        elemento(id).addEventListener("change", () => cargar(lista[elemento(id).selectedIndex]));
+        cargar(lista[0]);
+      });
+    }
+
+    armar();
+  </script>
+</body>
+</html>

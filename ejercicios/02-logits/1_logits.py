@@ -19,7 +19,7 @@ CUANTOS = 15  # cuántos tokens mostrar
 #    logits_all=True: que la librería guarde los logits después de leer.
 #    Si no se lo pedimos, no los guarda (para ahorrar memoria).
 #    verbose=False: que la librería no llene la pantalla con sus mensajes internos.
-modelo = Llama("../../modelos/granite-4.0-350m-Q4_K_M.gguf", logits_all=True, verbose=False)
+modelo = Llama("../../modelos/Qwen3-1.7B-Q4_K_M.gguf", logits_all=True, verbose=False)
 
 # Pedirle al usuario un texto, y repetir hasta que escriba "chau".
 texto = input("Escribí un texto (si queres salir escribi 'chau'): ")
